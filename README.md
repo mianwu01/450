@@ -26,8 +26,12 @@ Deliberately *not* a generic "AI dashboard." The system is built on:
   - god rays, drifting fog, floating motes, a colour grade, film grain and a
     letterbox finish;
   - it **pulls back** from full-bleed into the rounded dashboard banner on Analyze.
-  - Source is swappable in settings (curated · your image · your **video** ·
-    minimal CSS); if offline, it degrades gracefully to an atmospheric gradient.
+  - **Switchable scene vibes, any time** — a built-in gallery (🌲 Forest Dawn ·
+    🏔️ Snowy Peaks · 🌌 Aurora · 🏜️ Desert Dunes · 🌊 Ocean Cliffs), each a curated
+    trio of frames with its own colour grade, changeable live from the hero
+    switcher or the settings drawer. You can also point it at **your own image or
+    a looping video**, or **Minimal** CSS; offline it degrades to an atmospheric
+    gradient.
 
 ### Functional shell (not decoration)
 

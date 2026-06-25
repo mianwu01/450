@@ -15,7 +15,7 @@ export interface AppSettings {
   model: string;
   apiBaseUrl: string;
   apiKey: string;
-  background: { kind: BackgroundKind; url: string };
+  background: { kind: BackgroundKind; url: string; vibe: string };
   motion: { parallax: boolean; intensity: number; reduced: boolean };
   music: { enabled: boolean; url: string; volume: number };
 }
@@ -36,7 +36,7 @@ const DEFAULTS: AppSettings = {
   model: "deterministic",
   apiBaseUrl: "https://api.anthropic.com",
   apiKey: "",
-  background: { kind: "auto", url: "" },
+  background: { kind: "auto", url: "", vibe: "forest" },
   motion: { parallax: true, intensity: 1, reduced: false },
   music: { enabled: false, url: "", volume: 0.4 },
 };

@@ -6,8 +6,10 @@ import {
   Music,
   Sparkles,
   Info,
+  Check,
 } from "lucide-react";
 import { useSettings, updateSettings, MODELS } from "@/lib/settings";
+import { VIBES, vibeThumb } from "@/data/scenes";
 import { cn } from "@/lib/utils";
 
 export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -91,13 +93,49 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
                 value={s.background.kind}
                 onChange={(k) => updateSettings({ background: { ...s.background, kind: k } })}
                 options={[
-                  { value: "auto", label: "Curated" },
+                  { value: "auto", label: "Vibes" },
                   { value: "image", label: "Image" },
                   { value: "video", label: "Video" },
                   { value: "minimal", label: "Minimal" },
                 ]}
               />
             </Field>
+            {s.background.kind === "auto" && (
+              <Field label="Scene vibe">
+                <div className="grid grid-cols-3 gap-2">
+                  {VIBES.map((v) => {
+                    const on = s.background.vibe === v.id;
+                    return (
+                      <button
+                        key={v.id}
+                        onClick={() => updateSettings({ background: { ...s.background, vibe: v.id } })}
+                        className={cn(
+                          "group relative overflow-hidden rounded-xl ring-2 transition-all",
+                          on ? "ring-ink" : "ring-transparent hover:ring-line",
+                        )}
+                        title={v.label}
+                      >
+                        <img
+                          src={vibeThumb(v)}
+                          alt={v.label}
+                          loading="lazy"
+                          className="h-14 w-full object-cover"
+                        />
+                        <span className="absolute inset-x-0 bottom-0 flex items-center gap-1 bg-gradient-to-t from-black/70 to-transparent px-1.5 pb-1 pt-3 text-left text-[10px] font-medium text-white">
+                          <span>{v.emoji}</span>
+                          <span className="truncate">{v.label}</span>
+                        </span>
+                        {on && (
+                          <span className="absolute right-1 top-1 grid h-4 w-4 place-items-center rounded-full bg-ink">
+                            <Check className="h-2.5 w-2.5 text-paper" />
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Field>
+            )}
             {(s.background.kind === "image" || s.background.kind === "video") && (
               <Field label={s.background.kind === "video" ? "Video URL (mp4/webm)" : "Image URL"}>
                 <input

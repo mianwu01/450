@@ -8,7 +8,7 @@ import { compactNumber, timeAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { CinematicScene } from "./CinematicScene";
 import { RepoInput } from "./RepoInput";
-import { BrandButton, AssistantButton, MusicButton } from "./Controls";
+import { BrandButton, AssistantButton, MusicButton, VibeSwitcher } from "./Controls";
 
 type Phase = "welcome" | "loading" | "ready" | "error";
 
@@ -67,6 +67,7 @@ export function HeroStage({
           <div className="flex items-center justify-between px-5 py-5 md:px-9">
             <BrandButton onClick={onHome} dark />
             <div className="flex items-center gap-2">
+              <VibeSwitcher dark />
               <MusicButton
                 playing={audio.playing}
                 hasTrack={audio.hasTrack}

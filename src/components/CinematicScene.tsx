@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { CURATED_SCENES } from "@/data/scenes";
+import { getVibe } from "@/data/scenes";
 import type { AppSettings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +28,7 @@ export const CinematicScene = memo(function CinematicScene({
   const useVideo = kind === "video" && customUrl;
   const useImage = kind === "image" && customUrl;
   const useCurated = kind === "auto" || (!useVideo && !useImage && kind !== "minimal");
+  const vibe = getVibe(background.vibe);
 
   return (
     <div className={cn("cine cine-letterbox", still && "still")}>
@@ -51,10 +52,10 @@ export const CinematicScene = memo(function CinematicScene({
           />
         )}
         {useCurated &&
-          CURATED_SCENES.map((s, i) => (
+          vibe.frames.map((s, i) => (
             <div
               key={s.url}
-              className={cn("cine-img", ["a", "b", "c"][i])}
+              className={cn("cine-img", ["a", "b", "c"][i % 3])}
               style={{ backgroundImage: `url("${s.url}")`, transformOrigin: s.origin }}
             />
           ))}
@@ -84,7 +85,10 @@ export const CinematicScene = memo(function CinematicScene({
         ))}
       </div>
 
-      <div className="cine-grade" />
+      <div
+        className="cine-grade"
+        style={useCurated && vibe.grade ? { background: vibe.grade } : undefined}
+      />
       <div className="cine-grain" />
       <div className="cine-vignette" />
     </div>

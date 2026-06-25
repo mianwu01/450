@@ -32,7 +32,7 @@ import { ErrorState, WelcomeFeatures } from "@/components/EmptyStates";
 import { ExportMenu } from "@/components/ExportMenu";
 import { TokenSettings } from "@/components/TokenSettings";
 import { SettingsPanel } from "@/components/SettingsPanel";
-import { MusicButton, AssistantButton, EngineChip } from "@/components/Controls";
+import { MusicButton, AssistantButton, EngineChip, VibeSwitcher } from "@/components/Controls";
 import { Section, EmptyHint } from "@/components/Section";
 import { TodoCard } from "@/components/TodoCard";
 
@@ -171,6 +171,7 @@ export default function App() {
                   <ExportMenu result={result} />
                 </>
               )}
+              <VibeSwitcher />
               <MusicButton
                 playing={audio.playing}
                 hasTrack={audio.hasTrack}
