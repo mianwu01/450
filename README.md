@@ -40,9 +40,13 @@ Deliberately *not* a generic "AI dashboard." The system is built on:
 - The **Workflow** mark is a **day ⇄ night** switch for the scene (sun ⇄ moon);
   the sidebar brand returns **home** for a new analysis.
 - **Academic Workflow Assistant** opens a **settings drawer** (on hover or click):
-  ranking **model** + **API base/key** (reserved wiring for the future model
-  adapter), **scene source**, **motion / parallax intensity**, and **background
-  music**. Settings persist per-browser.
+  the **model** (Deterministic · **nanoGPT local** · hosted), **API base/key**,
+  **scene source**, **motion / parallax intensity**, and **background music**.
+  Settings persist per-browser.
+- **Local mode (nanoGPT)** — pick *nanoGPT (local)* and a real GPT‑2 running on
+  your machine (via `server/`) generates an on-device **workflow brief**. The
+  deterministic ranker still sets priorities; the local model adds the prose.
+  See [`server/README.md`](server/README.md). **End-to-end verified.**
 - **Background music** is supported — bring a looping track URL; it starts after
   your first interaction (browsers block silent autoplay) and has a speaker toggle.
 
@@ -190,6 +194,10 @@ network, empty queue) are all wired and demo-ready.
 project/github-workflow-dashboard/
 ├── index.html                      # warm paper light theme, minimal mark
 ├── package.json / vite / tsconfig / tailwind / postcss
+├── server/                         # local mode: nanoGPT FastAPI inference server
+│   ├── nanogpt_server.py           # OpenAI-compatible /v1/chat/completions + /health
+│   ├── run_nanogpt.sh              # load GPT-2 once, serve on :8080
+│   └── README.md                   # how to run local mode end-to-end
 ├── src/
 │   ├── main.tsx · App.tsx          # app shell + state machine + hero pull-back layout
 │   ├── index.css                   # design system: paper surfaces + cinematic engine
@@ -207,7 +215,9 @@ project/github-workflow-dashboard/
 │   │   └── index.ts                # runAnalysis() orchestrator + staged steps
 │   ├── logic/
 │   │   ├── analyze.ts              # extraction + deterministic P0–P3 ranker + health
-│   │   └── selectors.ts            # focus / blocked / review / stale / filtering
+│   │   ├── selectors.ts            # focus / blocked / review / stale / filtering
+│   │   ├── modelClient.ts          # OpenAI-compatible client (local nanoGPT / hosted)
+│   │   └── brief.ts                # builds the prompt + generates the workflow brief
 │   ├── lib/
 │   │   ├── utils.ts · format.ts    # repo parsing, relative time, compact numbers
 │   │   ├── presentation.ts         # priority/status/health design tokens
@@ -217,8 +227,9 @@ project/github-workflow-dashboard/
 │   └── components/
 │       ├── CinematicScene.tsx      # photographic parallax + Ken Burns engine
 │       ├── HeroStage.tsx           # full-bleed → docked banner pull-back + overview
-│       ├── Controls.tsx            # brand-home, assistant→settings, music, engine chip
-│       ├── SettingsPanel.tsx       # model / API / scene / motion / music drawer
+│       ├── Controls.tsx            # mood toggle, assistant→settings, music, engine chip
+│       ├── SettingsPanel.tsx       # model / API / scene / motion / music drawer + conn test
+│       ├── BriefPanel.tsx          # on-device nanoGPT "workflow brief" (states + regen)
 │       ├── Sidebar.tsx             # repos + priority breakdown + quick filters
 │       ├── RepoInput.tsx           # owner/repo input + Sample/Live toggle
 │       ├── TodaysFocus.tsx         # top 3–5 tasks
@@ -266,9 +277,11 @@ project/github-workflow-dashboard/
 1. **Replace the adapter with a Nanobot tool.** Implement `GitHubAdapter` over
    the `gh` CLI skill (or a FastAPI trace-agent endpoint) and register it in
    `adapters/index.ts`. The UI needs no changes.
-2. **Swap the ranker for a model adapter.** Keep `analyze.ts`'s signature; back
-   `scoreItem` / rationale generation with an LLM judge behind the same
-   deterministic fallback.
+2. **Model adapter — done for local mode (nanoGPT).** `logic/modelClient.ts`
+   (OpenAI-compatible) + `server/` run GPT‑2 locally to generate the brief.
+   *Next:* extend the same client to per-todo rationale/summaries and to a
+   fine-tuned / instruction-tuned local checkpoint (GPT‑2 base prose is rough),
+   or point `apiBaseUrl` at vLLM/Claude — no UI changes needed.
 3. **Wire real traceability IDs.** Persist evidence to the Nanobot evidence store
    and carry stable trace IDs end-to-end (the UI already renders per-todo
    evidence + timestamps + confidence).

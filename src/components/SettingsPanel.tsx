@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   X,
   Cpu,
@@ -7,8 +7,11 @@ import {
   Sparkles,
   Info,
   Check,
+  Plug,
+  Loader2,
 } from "lucide-react";
 import { useSettings, updateSettings, MODELS } from "@/lib/settings";
+import { pingHealth, NANOGPT_DEFAULT_URL } from "@/logic/modelClient";
 import { VIBES, vibeThumb } from "@/data/scenes";
 import { cn } from "@/lib/utils";
 
@@ -50,11 +53,29 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
 
         <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
           {/* ── Assistant / model ── */}
-          <Group icon={Cpu} title="Model & API" note="Reserved — ranking runs on the deterministic engine this milestone; these wire the future model adapter.">
-            <Field label="Ranking model">
+          <Group
+            icon={Cpu}
+            title="Model & API"
+            note={
+              s.model === "nanogpt-local"
+                ? "Local mode: the brief is generated on-device by nanoGPT (GPT-2). Start it with `bash server/run_nanogpt.sh`. Priorities stay deterministic."
+                : s.model === "deterministic"
+                  ? "Deterministic ranker — no model calls. Pick nanoGPT (local) to generate an on-device brief, or a hosted model."
+                  : "Hosted model — set the base URL + key. Used to generate the natural-language brief; priorities stay deterministic."
+            }
+          >
+            <Field label="Ranking / brief model">
               <select
                 value={s.model}
-                onChange={(e) => updateSettings({ model: e.target.value })}
+                onChange={(e) => {
+                  const model = e.target.value;
+                  const patch: Record<string, unknown> = { model };
+                  if (model === "nanogpt-local" && !/(localhost|127\.0\.0\.1)/.test(s.apiBaseUrl)) {
+                    updateSettings({ model, apiBaseUrl: NANOGPT_DEFAULT_URL });
+                    return;
+                  }
+                  updateSettings(patch);
+                }}
                 className="ctl-select"
               >
                 {MODELS.map((m) => (
@@ -64,26 +85,33 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
                 ))}
               </select>
             </Field>
-            <Field label="API base URL">
-              <input
-                value={s.apiBaseUrl}
-                onChange={(e) => updateSettings({ apiBaseUrl: e.target.value })}
-                placeholder="https://api.anthropic.com"
-                spellCheck={false}
-                className="ctl-input font-mono"
-              />
-            </Field>
-            <Field label="API key">
-              <input
-                type="password"
-                value={s.apiKey}
-                onChange={(e) => updateSettings({ apiKey: e.target.value })}
-                placeholder="sk-…"
-                autoComplete="off"
-                spellCheck={false}
-                className="ctl-input font-mono"
-              />
-            </Field>
+            {s.model !== "deterministic" && (
+              <>
+                <Field label="API base URL">
+                  <input
+                    value={s.apiBaseUrl}
+                    onChange={(e) => updateSettings({ apiBaseUrl: e.target.value })}
+                    placeholder={s.model === "nanogpt-local" ? NANOGPT_DEFAULT_URL : "https://api.anthropic.com"}
+                    spellCheck={false}
+                    className="ctl-input font-mono"
+                  />
+                </Field>
+                {s.model !== "nanogpt-local" && (
+                  <Field label="API key">
+                    <input
+                      type="password"
+                      value={s.apiKey}
+                      onChange={(e) => updateSettings({ apiKey: e.target.value })}
+                      placeholder="sk-…"
+                      autoComplete="off"
+                      spellCheck={false}
+                      className="ctl-input font-mono"
+                    />
+                  </Field>
+                )}
+                <ConnectionTester baseUrl={s.apiBaseUrl} />
+              </>
+            )}
           </Group>
 
           {/* ── Scene ── */}
@@ -223,6 +251,44 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
           </div>
         </div>
       </aside>
+    </div>
+  );
+}
+
+function ConnectionTester({ baseUrl }: { baseUrl: string }) {
+  const [state, setState] = useState<{ status: "idle" | "testing" | "ok" | "fail"; info?: string }>({
+    status: "idle",
+  });
+  async function test() {
+    setState({ status: "testing" });
+    try {
+      const h = await pingHealth(baseUrl);
+      const info = [h.backend ?? "model", h.model, h.device, h.params_m && `${h.params_m}M`]
+        .filter(Boolean)
+        .join(" · ");
+      setState({ status: h.ready ? "ok" : "fail", info });
+    } catch (e) {
+      setState({ status: "fail", info: (e as Error).message });
+    }
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <button onClick={test} className="btn px-3 py-1.5 text-[12px]">
+        {state.status === "testing" ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Plug className="h-3.5 w-3.5" />
+        )}
+        Test connection
+      </button>
+      {state.status === "ok" && (
+        <span className="flex items-center gap-1 font-mono text-[11px] text-mint">
+          <Check className="h-3.5 w-3.5" /> {state.info}
+        </span>
+      )}
+      {state.status === "fail" && (
+        <span className="text-[11px] text-p0-ink">offline — run the server</span>
+      )}
     </div>
   );
 }

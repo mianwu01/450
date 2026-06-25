@@ -24,6 +24,7 @@ export interface AppSettings {
 
 export const MODELS: { id: string; label: string }[] = [
   { id: "deterministic", label: "Deterministic ranker (default)" },
+  { id: "nanogpt-local", label: "nanoGPT — local (GPT-2)" },
   { id: "claude-opus-4-8", label: "Claude Opus 4.8" },
   { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
   { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
@@ -32,6 +33,11 @@ export const MODELS: { id: string; label: string }[] = [
 
 export function modelLabel(id: string): string {
   return MODELS.find((m) => m.id === id)?.label ?? id;
+}
+
+/** Whether the selected model adds LLM generation (vs. the deterministic ranker). */
+export function isGenerative(model: string): boolean {
+  return model !== "deterministic";
 }
 
 const DEFAULTS: AppSettings = {

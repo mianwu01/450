@@ -243,15 +243,34 @@ export function VibeSwitcher({ dark }: { dark?: boolean }) {
 }
 
 /** Shows the active ranking engine; click opens settings to change it. */
-export function EngineChip({ model, onOpen }: { model: string; onOpen: () => void }) {
+export function EngineChip({
+  model,
+  online,
+  onOpen,
+}: {
+  model: string;
+  online?: boolean;
+  onOpen: () => void;
+}) {
   return (
     <button
       onClick={onOpen}
       className="hidden items-center gap-1.5 rounded-full bg-surface-3 px-2.5 py-1.5 text-[11px] text-ink-2 transition-colors hover:text-ink xl:inline-flex"
-      title="Ranking engine — click to change"
+      title={
+        online === undefined
+          ? "Ranking engine — click to change"
+          : online
+            ? "Local model connected — click to configure"
+            : "Local model offline — start server/run_nanogpt.sh"
+      }
     >
+      {online !== undefined && (
+        <span
+          className={cn("h-1.5 w-1.5 rounded-full", online ? "bg-mint" : "bg-honey")}
+        />
+      )}
       <Cpu className="h-3.5 w-3.5" />
-      <span className="label !text-ink-3">Ranked</span>
+      <span className="label !text-ink-3">Engine</span>
       <span className="font-medium">{modelLabel(model).replace(" (default)", "")}</span>
     </button>
   );

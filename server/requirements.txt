@@ -1,0 +1,8 @@
+# Local nanoGPT server deps (already present on this ML node).
+# nanoGPT itself (model.py) is referenced via NANOGPT_DIR, not pip-installed.
+fastapi>=0.110
+uvicorn>=0.29
+torch>=2.1
+tiktoken>=0.6
+transformers>=4.40
+pydantic>=2.5

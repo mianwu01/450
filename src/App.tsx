@@ -16,8 +16,13 @@ import {
 } from "@/logic/selectors";
 import type { Filters } from "@/logic/selectors";
 import { cn } from "@/lib/utils";
-import { useSettings } from "@/lib/settings";
+import { useSettings, isGenerative } from "@/lib/settings";
 import { useAudio } from "@/hooks/useAudio";
+import { generateBrief } from "@/logic/brief";
+import { pingHealth, NANOGPT_DEFAULT_URL } from "@/logic/modelClient";
+import type { ModelHealth } from "@/logic/modelClient";
+import { BriefPanel } from "@/components/BriefPanel";
+import type { BriefState } from "@/components/BriefPanel";
 
 import { Sidebar } from "@/components/Sidebar";
 import type { RepoTab } from "@/components/Sidebar";
@@ -56,6 +61,8 @@ export default function App() {
   const [history, setHistory] = useState<Record<string, RepoAnalysisResult>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [brief, setBrief] = useState<BriefState | null>(null);
+  const [modelHealth, setModelHealth] = useState<ModelHealth | null>(null);
 
   const settings = useSettings();
   const audio = useAudio(settings.music);
@@ -68,6 +75,44 @@ export default function App() {
     setInput("");
   }
 
+  // Resolve the model endpoint (local nanoGPT defaults to localhost:8080).
+  function modelUrl(): string {
+    const u = settings.apiBaseUrl;
+    if (settings.model === "nanogpt-local")
+      return /(localhost|127\.0\.0\.1)/.test(u) ? u : NANOGPT_DEFAULT_URL;
+    return u;
+  }
+
+  // Generate the natural-language brief with the selected model (non-blocking).
+  async function runBrief(res: RepoAnalysisResult) {
+    if (!isGenerative(settings.model)) return;
+    setBrief({ status: "loading" });
+    try {
+      const text = await generateBrief(res, modelUrl(), settings.apiKey || undefined);
+      setBrief({ status: "done", text });
+      setResult((r) => (r && r.repoName === res.repoName ? { ...r, brief: text, engine: settings.model } : r));
+    } catch (e) {
+      setBrief({ status: "error", error: (e as Error).message });
+    }
+  }
+
+  // Probe the local model's health so the engine chip + brief panel can show it.
+  useEffect(() => {
+    if (settings.model !== "nanogpt-local") {
+      setModelHealth(null);
+      return;
+    }
+    let alive = true;
+    pingHealth(modelUrl()).then(
+      (h) => alive && setModelHealth(h),
+      () => alive && setModelHealth(null),
+    );
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.model, settings.apiBaseUrl]);
+
   async function analyze(raw?: string) {
     const target = raw ?? input;
     setLoadingLabel(target);
@@ -79,6 +124,7 @@ export default function App() {
     setError(null);
     setSteps(initialSteps());
     setFilters(emptyFilters());
+    setBrief(null);
 
     try {
       const res = await runAnalysis(target, {
@@ -90,6 +136,7 @@ export default function App() {
       setResult(res);
       setHistory((h) => ({ ...h, [res.repoName]: res }));
       setPhase("ready");
+      void runBrief(res);
     } catch (e) {
       if ((e as Error).name === "AbortError") return;
       const err =
@@ -172,7 +219,11 @@ export default function App() {
             <div className="ml-auto flex items-center gap-2">
               {phase === "ready" && result && (
                 <>
-                  <EngineChip model={settings.model} onOpen={() => setSettingsOpen(true)} />
+                  <EngineChip
+                    model={settings.model}
+                    online={settings.model === "nanogpt-local" ? !!modelHealth?.ready : undefined}
+                    onOpen={() => setSettingsOpen(true)}
+                  />
                   <ExportMenu result={result} />
                 </>
               )}
@@ -222,6 +273,14 @@ export default function App() {
 
             {phase === "ready" && result && (
               <div className="space-y-5 pt-5">
+                {isGenerative(settings.model) && brief && (
+                  <BriefPanel
+                    state={brief}
+                    model={settings.model}
+                    device={modelHealth?.device}
+                    onRegenerate={() => result && runBrief(result)}
+                  />
+                )}
                 <TodaysFocus items={todaysFocus(result.todos)} onOpen={setExpandedId} />
 
                 <div className="flex flex-wrap items-center gap-3">
