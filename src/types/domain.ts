@@ -1,0 +1,137 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Core data contract for the Academic Workflow Assistant Agent (GitHub slice).
+//
+// This is the *internal* shape the dashboard renders. It is deliberately
+// decoupled from the GitHub API shape and from any model provider, so the
+// pipeline can later be served by a real Nanobot tool without touching the UI:
+//
+//   GitHub source data → intake → task extraction → priority ranking
+//   → evidence store → dashboard
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type TodoPriority = "P0" | "P1" | "P2" | "P3";
+
+export type TodoStatus =
+  | "blocked"
+  | "needs_review"
+  | "needs_implementation"
+  | "needs_decision"
+  | "needs_triage"
+  | "waiting";
+
+export type TodoSourceType = "issue" | "pull_request" | "repo";
+
+export interface Evidence {
+  sourceType: TodoSourceType;
+  sourceTitle: string;
+  sourceUrl: string;
+  /** Raw excerpt copied verbatim from the GitHub source — the grounding. */
+  snippet: string;
+  timestamp?: string;
+}
+
+export interface TodoItem {
+  id: string;
+  title: string;
+  summary: string;
+  priority: TodoPriority;
+  status: TodoStatus;
+  suggestedAction: string;
+  /** Human-readable explanation of *why this matters* / why this priority. */
+  rationale: string;
+  /** 0..1 — how confident the extractor is in this item. */
+  confidence?: number;
+  labels?: string[];
+  assignees?: string[];
+  updatedAt?: string;
+  /** Convenience direct link to the originating issue/PR. */
+  sourceUrl?: string;
+  sourceType?: TodoSourceType;
+  /** Issue/PR number for display. */
+  reference?: number;
+  evidence: Evidence[];
+}
+
+export type HealthStatus =
+  | "Stable"
+  | "High Activity"
+  | "Needs Attention"
+  | "Blocked";
+
+export interface RepoAnalysisResult {
+  repoName: string;
+  repoUrl: string;
+  description?: string;
+  language?: string;
+  stars?: number;
+  forks?: number;
+  openIssues?: number;
+  openPRs?: number;
+  lastUpdated?: string;
+  healthStatus: HealthStatus;
+  /** ISO timestamp this analysis was produced. */
+  generatedAt: string;
+  todos: TodoItem[];
+}
+
+// ── Raw intake shapes (what an adapter returns before extraction) ───────────────
+// These mirror the subset of GitHub fields the prototype consumes. A real
+// Nanobot connector would populate these from `gh` / the REST API.
+
+export interface RawRepo {
+  fullName: string;
+  htmlUrl: string;
+  description?: string;
+  language?: string;
+  stars?: number;
+  forks?: number;
+  openIssuesAndPrs?: number; // GitHub counts PRs as issues in this field
+  pushedAt?: string;
+}
+
+export interface RawUser {
+  login: string;
+  avatarUrl?: string;
+}
+
+export interface RawIssue {
+  number: number;
+  title: string;
+  body?: string;
+  htmlUrl: string;
+  state: "open" | "closed";
+  labels: string[];
+  assignees: string[];
+  milestone?: string;
+  comments: number;
+  createdAt: string;
+  updatedAt: string;
+  authorLogin?: string;
+  /** Last meaningful comment, if surfaced by the adapter. */
+  lastComment?: string;
+}
+
+export type CheckState = "passing" | "failing" | "pending" | "none";
+export type ReviewState =
+  | "approved"
+  | "changes_requested"
+  | "review_required"
+  | "none";
+
+export interface RawPullRequest extends RawIssue {
+  isDraft: boolean;
+  reviewState: ReviewState;
+  checkState: CheckState;
+  additions?: number;
+  deletions?: number;
+  changedFiles?: number;
+  requestedReviewers?: string[];
+}
+
+export interface IntakeBundle {
+  repo: RawRepo;
+  issues: RawIssue[];
+  pullRequests: RawPullRequest[];
+  /** The viewer's GitHub login, used for "assigned to me" boosts. */
+  viewerLogin?: string;
+}

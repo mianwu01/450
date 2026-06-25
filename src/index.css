@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-ink-950 text-slate-200 font-sans antialiased;
+    background-image:
+      radial-gradient(1200px 600px at 75% -15%, rgba(124, 92, 255, 0.18), transparent 60%),
+      radial-gradient(900px 520px at 5% 5%, rgba(45, 212, 191, 0.09), transparent 55%);
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background: rgba(124, 92, 255, 0.35);
+  }
+
+  /* Slim, themed scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.22);
+  }
+}
+
+@layer components {
+  /* Frosted glass panel — the core surface of the command center */
+  .glass {
+    @apply rounded-2xl border border-line bg-ink-800/60 backdrop-blur-xl shadow-card;
+  }
+  .glass-soft {
+    @apply rounded-xl border border-line bg-ink-800/40 backdrop-blur-md;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-white/[0.03]
+           px-2.5 py-1 text-xs font-medium text-slate-300;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-line
+           bg-white/[0.04] px-3.5 py-2 text-sm font-medium text-slate-200
+           transition-all duration-200 hover:bg-white/[0.08] hover:border-white/20
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/60
+           disabled:opacity-40 disabled:pointer-events-none;
+  }
+  .btn-primary {
+    @apply border-transparent bg-gradient-to-br from-accent to-[#5b8cff] text-white
+           shadow-[0_8px_30px_-10px_rgba(124,92,255,0.7)]
+           hover:from-[#8a6dff] hover:to-[#6f9bff] hover:shadow-glow;
+  }
+
+  /* Animated gradient hairline used under headers */
+  .hairline {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(124, 92, 255, 0.5),
+      rgba(45, 212, 191, 0.4),
+      transparent
+    );
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+  /* Loading skeleton shimmer */
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.06),
+      transparent
+    );
+    animation: shimmer 1.6s infinite;
+  }
+}
