@@ -20,7 +20,6 @@
     background: rgba(230, 251, 82, 0.55);
     color: #1b1b17;
   }
-  /* tabular numerals everywhere data is shown via .num / mono */
   .font-mono,
   .num {
     font-variant-numeric: tabular-nums;
@@ -46,7 +45,6 @@
 }
 
 @layer components {
-  /* Friendly rounded surfaces — Intelly-style, soft not glassy */
   .card {
     @apply rounded-3xl bg-surface shadow-card;
   }
@@ -56,21 +54,16 @@
   .inset-surface {
     @apply rounded-2xl bg-surface-3 shadow-[inset_0_0_0_1px_rgba(27,27,23,0.05)];
   }
-
-  /* mono micro-label, the Geist/terminal signature */
   .label {
     @apply font-mono text-[10px] uppercase tracking-[0.16em] text-ink-3;
   }
-
   .rule {
     @apply h-px w-full bg-line;
   }
-
   .pill {
     @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-surface
            px-2.5 py-1 text-xs font-medium text-ink-2;
   }
-
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-full bg-surface px-4 py-2
            text-sm font-medium text-ink shadow-hair transition-all duration-200
@@ -84,11 +77,24 @@
   .btn-accent {
     @apply bg-accent text-accent-ink shadow-pop hover:bg-accent-deep;
   }
-
-  /* dark pill used over the cinematic scene (frame-4 nav chips) */
   .pill-dark {
     @apply inline-flex items-center gap-1.5 rounded-full border border-white/15
            bg-black/35 px-3 py-1.5 text-xs font-medium text-white/90 backdrop-blur-md;
+  }
+  .ctl-input {
+    @apply w-full rounded-xl bg-surface-3 px-3 py-2 text-[13px] text-ink
+           placeholder:text-ink-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/15;
+  }
+  .ctl-select {
+    @apply w-full rounded-xl bg-surface-3 px-3 py-2 text-[13px] text-ink
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/15;
+  }
+  /* interactive control sitting over the cinematic scene */
+  .glass-ctl {
+    @apply inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/30
+           px-3 py-1.5 text-[13px] font-medium text-white/90 backdrop-blur-md
+           transition-colors hover:bg-black/45 hover:text-white
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30;
   }
 }
 
@@ -113,128 +119,223 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Cinematic landscape scene (pure CSS/SVG, no external assets)
-   A continuously transforming dawn → day vista: panning sky, rising sun,
-   drifting fog banks, parallax ridges, film grain + vignette.
+   Cinematic landscape engine
+   Photographic frames cross-fading under a slow Ken Burns dolly, layered into
+   depth planes that respond to pointer parallax (via --mx/--my), finished with
+   drifting fog, god rays, floating motes, a colour grade, grain and vignette.
+   Degrades to the atmospheric base gradient when images can't load (offline).
    ───────────────────────────────────────────────────────────────────────── */
-.scene {
+.cine {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: #11212e;
+  background: #0c1620;
+  --mx: 0;
+  --my: 0;
 }
-.scene-sky {
+
+/* atmospheric base — always present, also the offline fallback */
+.cine-base {
   position: absolute;
-  left: -5%;
-  right: -5%;
-  top: -60%;
-  height: 220%;
-  background: linear-gradient(
-    180deg,
-    #1a2c3d 0%,
-    #2c4459 16%,
-    #5b7790 34%,
-    #9db3c1 52%,
-    #cfc6ac 68%,
-    #ecd6ab 80%,
-    #f6e6c2 92%,
-    #f8eccf 100%
-  );
-  will-change: transform;
-  animation: sky 64s ease-in-out infinite;
+  inset: -8%;
+  background:
+    radial-gradient(110% 70% at 72% 6%, rgba(255, 236, 198, 0.55), transparent 46%),
+    linear-gradient(180deg, #14253a 0%, #284158 28%, #56738a 52%, #9fb2bd 76%, #dccdb1 100%);
+  transform: translate3d(calc(var(--mx) * -7px), calc(var(--my) * -5px), 0) scale(1.05);
 }
-.scene-sun {
-  position: absolute;
-  left: 64%;
-  bottom: 30%;
-  width: 26vw;
-  height: 26vw;
-  max-width: 360px;
-  max-height: 360px;
-  border-radius: 999px;
-  background: radial-gradient(
-    circle,
-    rgba(255, 246, 224, 0.95) 0%,
-    rgba(255, 226, 170, 0.7) 28%,
-    rgba(255, 210, 150, 0.25) 50%,
-    rgba(255, 210, 150, 0) 70%
-  );
-  filter: blur(2px);
-  will-change: transform, opacity;
-  animation: sun 64s ease-in-out infinite;
-}
-.scene-fog {
-  position: absolute;
-  left: -20%;
-  right: -20%;
-  height: 38%;
-  background: linear-gradient(
-    180deg,
-    rgba(244, 240, 230, 0) 0%,
-    rgba(238, 234, 224, 0.55) 45%,
-    rgba(232, 228, 220, 0.85) 100%
-  );
-  filter: blur(14px);
-  will-change: transform;
-}
-.scene-fog.f1 {
-  bottom: 30%;
-  opacity: 0.7;
-  animation: fog-a 26s ease-in-out infinite alternate;
-}
-.scene-fog.f2 {
-  bottom: 16%;
-  height: 46%;
-  opacity: 0.85;
-  animation: fog-b 34s ease-in-out infinite alternate;
-}
-.scene-fog.f3 {
-  bottom: 0;
-  height: 34%;
-  opacity: 0.95;
-  animation: fog-a 44s ease-in-out infinite alternate;
-}
-.scene-ridges {
+
+/* parallax planes — pointer drives the transform, animations live on children */
+.cine-plane {
   position: absolute;
   inset: 0;
   will-change: transform;
-  animation: ridge-drift 40s ease-in-out infinite alternate;
 }
-.scene-grain {
+.cine-plane.p-img {
+  inset: -7%;
+  transform: translate3d(calc(var(--mx) * -24px), calc(var(--my) * -15px), 0);
+}
+.cine-plane.p-fog {
+  transform: translate3d(calc(var(--mx) * -38px), calc(var(--my) * -11px), 0);
+}
+.cine-plane.p-rays {
+  transform: translate3d(calc(var(--mx) * -15px), calc(var(--my) * -9px), 0);
+}
+.cine-plane.p-dust {
+  transform: translate3d(calc(var(--mx) * -58px), calc(var(--my) * -34px), 0);
+}
+
+/* cross-fading Ken Burns photographic frames */
+.cine-img {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.cine-img.a {
+  animation: cineFade 33s infinite 0s, kbA 33s ease-in-out infinite 0s;
+}
+.cine-img.b {
+  animation: cineFade 33s infinite 11s, kbB 33s ease-in-out infinite 11s;
+}
+.cine-img.c {
+  animation: cineFade 33s infinite 22s, kbC 33s ease-in-out infinite 22s;
+}
+.cine-img.solo {
+  opacity: 1;
+  animation: kbSolo 44s ease-in-out infinite alternate;
+}
+
+@keyframes cineFade {
+  0% { opacity: 0; }
+  4% { opacity: 1; }
+  30% { opacity: 1; }
+  38% { opacity: 0; }
+  100% { opacity: 0; }
+}
+/* all dolly OUT (narrow → wide) per the brief, with varied drift */
+@keyframes kbA { 0% { transform: scale(1.24) translate(2%, 1%); } 100% { transform: scale(1.05) translate(-1%, -1%); } }
+@keyframes kbB { 0% { transform: scale(1.2) translate(-2%, 1%); } 100% { transform: scale(1.04) translate(2%, -1%); } }
+@keyframes kbC { 0% { transform: scale(1.26) translate(0, -1%); } 100% { transform: scale(1.06) translate(-2%, 1%); } }
+@keyframes kbSolo { 0% { transform: scale(1.18); } 100% { transform: scale(1.04); } }
+
+/* fog banks */
+.fog {
+  position: absolute;
+  left: -30%;
+  right: -30%;
+  background: linear-gradient(
+    180deg,
+    rgba(226, 229, 231, 0) 0%,
+    rgba(220, 224, 228, 0.55) 55%,
+    rgba(213, 219, 225, 0.85) 100%
+  );
+  filter: blur(22px);
+}
+.fog.f1 { bottom: -6%; height: 52%; opacity: 0.9; animation: fogX 30s ease-in-out infinite alternate; }
+.fog.f2 { bottom: 22%; height: 34%; opacity: 0.5; animation: fogX2 46s ease-in-out infinite alternate; }
+@keyframes fogX { 0% { transform: translateX(-7%); } 100% { transform: translateX(7%); } }
+@keyframes fogX2 { 0% { transform: translateX(8%); } 100% { transform: translateX(-8%); } }
+
+/* volumetric god rays from the sun */
+.rays {
+  position: absolute;
+  top: -28%;
+  left: 34%;
+  width: 64%;
+  height: 130%;
+  background: repeating-conic-gradient(
+    from 90deg at 50% 0%,
+    rgba(255, 245, 216, 0.18) 0deg,
+    rgba(255, 245, 216, 0) 4deg 10deg
+  );
+  -webkit-mask-image: radial-gradient(58% 78% at 50% 0%, #000 0%, transparent 72%);
+  mask-image: radial-gradient(58% 78% at 50% 0%, #000 0%, transparent 72%);
+  mix-blend-mode: screen;
+  filter: blur(7px);
+  animation: rayPulse 13s ease-in-out infinite alternate;
+}
+@keyframes rayPulse { 0% { opacity: 0.45; transform: rotate(-2.5deg); } 100% { opacity: 0.85; transform: rotate(2.5deg); } }
+
+/* floating motes (foreground depth cue) */
+.mote {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 250, 236, 0.85);
+  filter: blur(0.5px);
+  opacity: 0;
+  animation: moteFloat 9s ease-in-out infinite;
+}
+@keyframes moteFloat {
+  0% { opacity: 0; transform: translateY(12px) scale(0.5); }
+  25% { opacity: 0.85; }
+  80% { opacity: 0.5; }
+  100% { opacity: 0; transform: translateY(-34px) scale(1); }
+}
+
+/* cinematic finishing */
+.cine-grade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(18, 40, 62, 0.28) 0%, rgba(26, 16, 10, 0.18) 100%);
+  mix-blend-mode: soft-light;
+}
+.cine-grain {
   position: absolute;
   inset: -20%;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
-  opacity: 0.05;
+  opacity: 0.06;
   mix-blend-mode: overlay;
   pointer-events: none;
-  animation: grain 0.6s steps(2) infinite;
+  animation: grain 0.55s steps(2) infinite;
 }
-.scene-vignette {
+@keyframes grain {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-3%, 2%); }
+  50% { transform: translate(2%, -3%); }
+  75% { transform: translate(-2%, -2%); }
+}
+.cine-vignette {
   position: absolute;
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(120% 90% at 50% 30%, transparent 55%, rgba(8, 16, 24, 0.5) 100%),
-    linear-gradient(180deg, rgba(8, 16, 24, 0.25) 0%, transparent 22%);
+    radial-gradient(125% 90% at 50% 32%, transparent 52%, rgba(6, 14, 22, 0.55) 100%),
+    linear-gradient(180deg, rgba(6, 14, 22, 0.28) 0%, transparent 20%);
 }
+.cine-letterbox::before,
+.cine-letterbox::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 4.5%;
+  pointer-events: none;
+  background: rgba(5, 9, 14, 0.55);
+}
+.cine-letterbox::before { top: 0; }
+.cine-letterbox::after { bottom: 0; }
 
-/* headline clip-reveal: each line is a clip mask, inner span rises in */
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+
+/* headline clip-reveal */
 .reveal-line {
   overflow: hidden;
   display: block;
 }
 .reveal-line > span {
   display: block;
-  animation: reveal 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: reveal 0.95s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes reveal {
+  0% { transform: translateY(110%); }
+  100% { transform: translateY(0); }
+}
+
+.cine.still .cine-img,
+.cine.still .fog,
+.cine.still .rays,
+.cine.still .mote,
+.cine.still .cine-grain {
+  animation: none !important;
+}
+.cine.still .cine-img.a,
+.cine.still .cine-img.solo {
+  opacity: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .scene-sky,
-  .scene-sun,
-  .scene-fog,
-  .scene-ridges,
-  .scene-grain,
+  .cine-img,
+  .fog,
+  .rays,
+  .mote,
+  .cine-grain,
   .reveal-line > span {
     animation: none !important;
   }
+  .cine-img.a,
+  .cine-img.solo { opacity: 1; }
 }

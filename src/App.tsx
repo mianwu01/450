@@ -15,8 +15,9 @@ import {
   uniqueLabels,
 } from "@/logic/selectors";
 import type { Filters } from "@/logic/selectors";
-import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useSettings } from "@/lib/settings";
+import { useAudio } from "@/hooks/useAudio";
 
 import { Sidebar } from "@/components/Sidebar";
 import type { RepoTab } from "@/components/Sidebar";
@@ -30,6 +31,8 @@ import { AnalysisLoadingState } from "@/components/AnalysisLoadingState";
 import { ErrorState, WelcomeFeatures } from "@/components/EmptyStates";
 import { ExportMenu } from "@/components/ExportMenu";
 import { TokenSettings } from "@/components/TokenSettings";
+import { SettingsPanel } from "@/components/SettingsPanel";
+import { MusicButton, AssistantButton, EngineChip } from "@/components/Controls";
 import { Section, EmptyHint } from "@/components/Section";
 import { TodoCard } from "@/components/TodoCard";
 
@@ -52,9 +55,18 @@ export default function App() {
   const [view, setView] = useState<View>("streams");
   const [history, setHistory] = useState<Record<string, RepoAnalysisResult>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const settings = useSettings();
+  const audio = useAudio(settings.music);
 
   const abortRef = useRef<AbortController | null>(null);
   const [loadingLabel, setLoadingLabel] = useState(input);
+
+  function goHome() {
+    setPhase("welcome");
+    setInput("");
+  }
 
   async function analyze(raw?: string) {
     const target = raw ?? input;
@@ -128,10 +140,8 @@ export default function App() {
               setFilters(emptyFilters());
             }
           }}
-          onNewRepo={() => {
-            setPhase("welcome");
-            setInput("");
-          }}
+          onNewRepo={goHome}
+          onHome={goHome}
           counts={counts}
           total={result?.todos.length ?? 0}
           priorityFilter={priorityFilter}
@@ -154,15 +164,20 @@ export default function App() {
               onModeChange={setMode}
               compact
             />
-            <div className="ml-auto flex items-center gap-2.5">
+            <div className="ml-auto flex items-center gap-2">
               {phase === "ready" && result && (
                 <>
-                  <span className="num hidden font-mono text-[11px] text-ink-3 lg:block">
-                    {formatDateTime(result.generatedAt)}
-                  </span>
+                  <EngineChip model={settings.model} onOpen={() => setSettingsOpen(true)} />
                   <ExportMenu result={result} />
                 </>
               )}
+              <MusicButton
+                playing={audio.playing}
+                hasTrack={audio.hasTrack}
+                onToggle={audio.toggle}
+                onOpen={() => setSettingsOpen(true)}
+              />
+              <AssistantButton onOpen={() => setSettingsOpen(true)} compact />
               <TokenSettings />
             </div>
           </header>
@@ -178,6 +193,9 @@ export default function App() {
             onAnalyze={() => analyze()}
             mode={mode}
             onMode={setMode}
+            onOpenSettings={() => setSettingsOpen(true)}
+            onHome={goHome}
+            audio={{ playing: audio.playing, hasTrack: audio.hasTrack, toggle: audio.toggle }}
           />
 
           <div className="mx-auto max-w-6xl px-4 pb-10 md:px-6">
@@ -244,6 +262,8 @@ export default function App() {
           </div>
         </div>
       </main>
+
+      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

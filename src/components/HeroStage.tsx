@@ -2,12 +2,21 @@ import { Star, GitFork, CircleDot, GitPullRequest, ArrowUpRight } from "lucide-r
 import type { RepoAnalysisResult } from "@/types/domain";
 import type { AdapterMode } from "@/adapters";
 import { HEALTH_META } from "@/lib/presentation";
+import { useSettings } from "@/lib/settings";
+import { useParallax } from "@/hooks/useParallax";
 import { compactNumber, timeAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { CinematicScene } from "./CinematicScene";
 import { RepoInput } from "./RepoInput";
+import { BrandButton, AssistantButton, MusicButton } from "./Controls";
 
 type Phase = "welcome" | "loading" | "ready" | "error";
+
+interface AudioCtl {
+  playing: boolean;
+  hasTrack: boolean;
+  toggle: () => void;
+}
 
 export function HeroStage({
   phase,
@@ -18,6 +27,9 @@ export function HeroStage({
   onAnalyze,
   mode,
   onMode,
+  onOpenSettings,
+  onHome,
+  audio,
 }: {
   phase: Phase;
   result: RepoAnalysisResult | null;
@@ -27,11 +39,20 @@ export function HeroStage({
   onAnalyze: () => void;
   mode: AdapterMode;
   onMode: (m: AdapterMode) => void;
+  onOpenSettings: () => void;
+  onHome: () => void;
+  audio: AudioCtl;
 }) {
   const welcome = phase === "welcome";
+  const s = useSettings();
+  const parallaxRef = useParallax<HTMLDivElement>(
+    s.motion.parallax && !s.motion.reduced,
+    s.motion.intensity,
+  );
 
   return (
     <div
+      ref={parallaxRef}
       className={cn(
         "relative shrink-0 overflow-hidden transition-[height,border-radius,margin] [transition-duration:1100ms] ease-out-expo",
         welcome
@@ -39,26 +60,26 @@ export function HeroStage({
           : "m-3 h-[300px] rounded-[28px] shadow-lift md:m-4 md:h-[340px]",
       )}
     >
-      <CinematicScene />
+      <CinematicScene background={s.background} still={s.motion.reduced} />
 
-      {/* WELCOME — full-bleed immersive landing */}
       {welcome && (
         <div className="absolute inset-0 flex flex-col">
-          <div className="flex items-center justify-between px-6 py-5 md:px-10">
-            <div className="flex items-center gap-2.5">
-              <Mark />
-              <span className="font-mono text-[12px] uppercase tracking-[0.22em] text-white/80">
-                Workflow
-              </span>
+          <div className="flex items-center justify-between px-5 py-5 md:px-9">
+            <BrandButton onClick={onHome} dark />
+            <div className="flex items-center gap-2">
+              <MusicButton
+                playing={audio.playing}
+                hasTrack={audio.hasTrack}
+                onToggle={audio.toggle}
+                onOpen={onOpenSettings}
+                dark
+              />
+              <AssistantButton onOpen={onOpenSettings} dark />
             </div>
-            <span className="pill-dark">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-              Academic Workflow Assistant
-            </span>
           </div>
 
           <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-            <h1 className="max-w-4xl text-[clamp(2.6rem,7vw,5.4rem)] font-semibold text-display text-white">
+            <h1 className="max-w-4xl text-[clamp(2.6rem,7vw,5.4rem)] font-semibold text-display text-white [text-shadow:0_2px_30px_rgba(0,0,0,0.35)]">
               <span className="reveal-line">
                 <span style={{ animationDelay: "0.05s" }}>Turn a repository</span>
               </span>
@@ -73,18 +94,14 @@ export function HeroStage({
               </span>
             </h1>
             <p
-              className="mt-6 max-w-xl text-[15px] leading-relaxed text-white/75 animate-fade-in"
+              className="mt-6 max-w-xl text-[15px] leading-relaxed text-white/80 animate-fade-in [text-shadow:0_1px_12px_rgba(0,0,0,0.4)]"
               style={{ animationDelay: "0.5s" }}
             >
-              Read issues, pull requests and activity from any GitHub repo, then
-              get a source-grounded, prioritized todo list — with the evidence
-              behind every call.
+              Read issues, pull requests and activity from any GitHub repo, then get a
+              source-grounded, prioritized todo list — with the evidence behind every call.
             </p>
 
-            <div
-              className="mt-9 w-full animate-fade-up"
-              style={{ animationDelay: "0.6s" }}
-            >
+            <div className="mt-9 w-full animate-fade-up" style={{ animationDelay: "0.6s" }}>
               <RepoInput
                 value={input}
                 onChange={onInput}
@@ -99,7 +116,6 @@ export function HeroStage({
         </div>
       )}
 
-      {/* DOCKED — landscape becomes the dashboard banner (frame-4 reveal) */}
       {!welcome && (
         <div className="absolute inset-0 flex flex-col justify-end p-5 md:p-7">
           {phase === "loading" && (
@@ -113,7 +129,6 @@ export function HeroStage({
               </div>
             </div>
           )}
-
           {phase === "error" && (
             <div className="animate-fade-in">
               <div className="label text-white/70">Analysis</div>
@@ -122,7 +137,6 @@ export function HeroStage({
               </div>
             </div>
           )}
-
           {phase === "ready" && result && <DockedOverview result={result} />}
         </div>
       )}
@@ -144,10 +158,8 @@ function DockedOverview({ result }: { result: RepoAnalysisResult }) {
         <ArrowUpRight className="h-3.5 w-3.5 opacity-70 transition group-hover:opacity-100" />
       </a>
       <div className="mt-1.5 flex flex-wrap items-end justify-between gap-3">
-        <h2 className="max-w-2xl text-3xl font-semibold text-display text-white md:text-[2.6rem]">
-          {result.description
-            ? truncate(result.description, 64)
-            : result.repoName.split("/").pop()}
+        <h2 className="max-w-2xl text-3xl font-semibold text-display text-white md:text-[2.6rem] [text-shadow:0_2px_24px_rgba(0,0,0,0.4)]">
+          {result.description ? truncate(result.description, 64) : result.repoName.split("/").pop()}
         </h2>
         <span
           className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-semibold text-ink shadow-pop"
@@ -169,15 +181,7 @@ function DockedOverview({ result }: { result: RepoAnalysisResult }) {
   );
 }
 
-function Chip({
-  icon: Icon,
-  value,
-  label,
-}: {
-  icon: typeof Star;
-  value: string;
-  label: string;
-}) {
+function Chip({ icon: Icon, value, label }: { icon: typeof Star; value: string; label: string }) {
   return (
     <span className="pill-dark">
       <Icon className="h-3.5 w-3.5 opacity-80" />
@@ -187,24 +191,8 @@ function Chip({
   );
 }
 
-function Mark() {
-  return (
-    <span className="grid h-7 w-7 place-items-center rounded-lg bg-white/10 ring-1 ring-white/20">
-      <span className="relative block h-3.5 w-3.5">
-        <span className="absolute bottom-0 left-1/2 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-accent" />
-        <span className="absolute bottom-1 left-0 h-[2px] w-full rounded bg-white" />
-      </span>
-    </span>
-  );
-}
-
 function Dot({ d = "0s" }: { d?: string }) {
-  return (
-    <span
-      className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent"
-      style={{ animationDelay: d }}
-    />
-  );
+  return <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" style={{ animationDelay: d }} />;
 }
 
 function truncate(s: string, n: number): string {

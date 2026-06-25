@@ -13,6 +13,7 @@ export function Sidebar({
   activeRepo,
   onSelectRepo,
   onNewRepo,
+  onHome,
   counts,
   total,
   priorityFilter,
@@ -23,6 +24,7 @@ export function Sidebar({
   activeRepo: string | null;
   onSelectRepo: (name: string) => void;
   onNewRepo: () => void;
+  onHome: () => void;
   counts: Record<TodoPriority, number>;
   total: number;
   priorityFilter: TodoPriority | null;
@@ -31,13 +33,17 @@ export function Sidebar({
 }) {
   return (
     <aside className="hidden h-full w-[248px] shrink-0 animate-fade-in flex-col border-r border-line bg-paper-warm lg:flex">
-      <div className="flex items-center gap-2.5 px-5 py-5">
+      <button
+        onClick={onHome}
+        className="flex items-center gap-2.5 px-5 py-5 text-left transition-opacity hover:opacity-80"
+        title="Home — start a new analysis"
+      >
         <Mark />
         <div className="leading-tight">
           <div className="text-[14px] font-semibold tracking-tight text-ink">Workflow</div>
           <div className="label">Triage</div>
         </div>
-      </div>
+      </button>
 
       <nav className="px-3">
         <div className="flex items-center gap-2.5 rounded-xl bg-surface px-3 py-2.5 text-[13px] font-semibold text-ink shadow-hair">

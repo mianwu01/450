@@ -17,10 +17,27 @@ Deliberately *not* a generic "AI dashboard." The system is built on:
   the *Intelly* dashboard direction) — shadow-as-border, not glass or glow.
 - **One restrained accent** (a lemon, never pink) plus a pastel-but-legible
   priority palette (P0 is coral, not red-glow).
-- A **cinematic CSS/SVG landscape hero** — a continuously transforming dawn→day
-  vista (panning sky, rising sun, drifting fog, parallax ridges, film grain) that
-  **pulls back** from full-bleed into the rounded dashboard banner when you
-  Analyze. No images or video — it's all CSS + SVG, so it ships offline.
+- A **cinematic landscape hero** that feels like film, not a graphic:
+  - **photographic** majestic landscapes (curated, free-to-use Unsplash) that
+    **cross-fade** under a slow **Ken Burns dolly-out** (the camera widens from a
+    narrow to a grand view over time);
+  - **pointer parallax** — depth planes (photo, fog, god-rays, foreground motes)
+    shift against the cursor for a live dynamic-camera feel;
+  - god rays, drifting fog, floating motes, a colour grade, film grain and a
+    letterbox finish;
+  - it **pulls back** from full-bleed into the rounded dashboard banner on Analyze.
+  - Source is swappable in settings (curated · your image · your **video** ·
+    minimal CSS); if offline, it degrades gracefully to an atmospheric gradient.
+
+### Functional shell (not decoration)
+
+- **Workflow** (top-left / sidebar) is the **home** control — back to a new analysis.
+- **Academic Workflow Assistant** opens a **settings drawer** (on hover or click):
+  ranking **model** + **API base/key** (reserved wiring for the future model
+  adapter), **scene source**, **motion / parallax intensity**, and **background
+  music**. Settings persist per-browser.
+- **Background music** is supported — bring a looping track URL; it starts after
+  your first interaction (browsers block silent autoplay) and has a speaker toggle.
 
 > This milestone is **read-only**: read → summarize → prioritize → display.
 > No issues are closed, no PRs commented or merged, no repository state is changed.
@@ -168,9 +185,14 @@ project/github-workflow-dashboard/
 ├── package.json / vite / tsconfig / tailwind / postcss
 ├── src/
 │   ├── main.tsx · App.tsx          # app shell + state machine + hero pull-back layout
-│   ├── index.css                   # design system: paper surfaces + cinematic scene
+│   ├── index.css                   # design system: paper surfaces + cinematic engine
+│   ├── hooks/
+│   │   ├── useParallax.ts          # smoothed pointer-parallax → --mx/--my CSS vars
+│   │   └── useAudio.ts             # background-music controller (gesture-gated)
 │   ├── types/domain.ts             # ← the data contract (TodoItem, RepoAnalysisResult, …)
-│   ├── data/mockData.ts            # curated realistic intake bundle
+│   ├── data/
+│   │   ├── mockData.ts             # curated realistic intake bundle
+│   │   └── scenes.ts               # curated free-to-use landscape frames
 │   ├── adapters/
 │   │   ├── types.ts                # GitHubAdapter interface + AnalysisError
 │   │   ├── mockAdapter.ts          # offline curated data
@@ -182,11 +204,14 @@ project/github-workflow-dashboard/
 │   ├── lib/
 │   │   ├── utils.ts · format.ts    # repo parsing, relative time, compact numbers
 │   │   ├── presentation.ts         # priority/status/health design tokens
+│   │   ├── settings.ts             # persisted app settings store (model/scene/music)
 │   │   ├── token.ts                # GitHub token store (localStorage)
 │   │   └── export.ts               # JSON + Markdown export
 │   └── components/
-│       ├── CinematicScene.tsx      # pure CSS/SVG dawn→day landscape (no assets)
+│       ├── CinematicScene.tsx      # photographic parallax + Ken Burns engine
 │       ├── HeroStage.tsx           # full-bleed → docked banner pull-back + overview
+│       ├── Controls.tsx            # brand-home, assistant→settings, music, engine chip
+│       ├── SettingsPanel.tsx       # model / API / scene / motion / music drawer
 │       ├── Sidebar.tsx             # repos + priority breakdown + quick filters
 │       ├── RepoInput.tsx           # owner/repo input + Sample/Live toggle
 │       ├── TodaysFocus.tsx         # top 3–5 tasks

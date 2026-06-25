@@ -80,65 +80,21 @@ export default {
           "0%": { opacity: "0", transform: "scale(0.96)" },
           "100%": { opacity: "1", transform: "scale(1)" },
         },
-        // ── Cinematic scene ──────────────────────────────────────────
-        sky: {
-          // pan a tall dawn→day→dusk gradient
-          "0%, 100%": { transform: "translateY(0)" },
-          "50%": { transform: "translateY(-22%)" },
-        },
-        sun: {
-          "0%, 100%": { transform: "translate(-50%, 18%) scale(0.9)", opacity: "0.85" },
-          "50%": { transform: "translate(-50%, -26%) scale(1.08)", opacity: "1" },
-        },
-        "fog-a": {
-          "0%": { transform: "translateX(-12%)" },
-          "100%": { transform: "translateX(12%)" },
-        },
-        "fog-b": {
-          "0%": { transform: "translateX(10%)" },
-          "100%": { transform: "translateX(-14%)" },
-        },
-        "ridge-drift": {
-          "0%": { transform: "translateX(-2.5%)" },
-          "100%": { transform: "translateX(2.5%)" },
-        },
-        "birds": {
-          "0%": { transform: "translate(-20%, 10%)", opacity: "0" },
-          "10%": { opacity: "0.5" },
-          "90%": { opacity: "0.5" },
-          "100%": { transform: "translate(120%, -30%)", opacity: "0" },
-        },
-        grain: {
-          "0%,100%": { transform: "translate(0,0)" },
-          "25%": { transform: "translate(-3%,2%)" },
-          "50%": { transform: "translate(2%,-3%)" },
-          "75%": { transform: "translate(-2%,-2%)" },
-        },
-        // headline clip reveal
-        reveal: {
-          "0%": { transform: "translateY(110%)" },
-          "100%": { transform: "translateY(0)" },
+        "slide-in-right": {
+          "0%": { opacity: "0", transform: "translateX(16px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
         },
         "bar-grow": {
           "0%": { transform: "scaleX(0)" },
           "100%": { transform: "scaleX(1)" },
         },
-        shimmer: { "100%": { transform: "translateX(100%)" } },
       },
       animation: {
         "fade-up": "fade-up 0.5s cubic-bezier(0.16,1,0.3,1) both",
         "fade-in": "fade-in 0.5s ease both",
         "scale-in": "scale-in 0.5s cubic-bezier(0.16,1,0.3,1) both",
-        sky: "sky 64s ease-in-out infinite",
-        sun: "sun 64s ease-in-out infinite",
-        "fog-a": "fog-a 26s ease-in-out infinite alternate",
-        "fog-b": "fog-b 34s ease-in-out infinite alternate",
-        "ridge-drift": "ridge-drift 40s ease-in-out infinite alternate",
-        birds: "birds 28s linear infinite",
-        grain: "grain 0.6s steps(2) infinite",
-        reveal: "reveal 0.9s cubic-bezier(0.16,1,0.3,1) both",
+        "slide-in-right": "slide-in-right 0.35s cubic-bezier(0.16,1,0.3,1) both",
         "bar-grow": "bar-grow 0.8s cubic-bezier(0.16,1,0.3,1) both",
-        shimmer: "shimmer 1.6s infinite",
       },
     },
   },
