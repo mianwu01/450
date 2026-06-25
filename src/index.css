@@ -4,109 +4,237 @@
 
 @layer base {
   :root {
-    color-scheme: dark;
+    color-scheme: light;
   }
-
   html,
   body,
   #root {
     height: 100%;
   }
-
   body {
-    @apply bg-ink-950 text-slate-200 font-sans antialiased;
-    background-image:
-      radial-gradient(1200px 600px at 75% -15%, rgba(124, 92, 255, 0.18), transparent 60%),
-      radial-gradient(900px 520px at 5% 5%, rgba(45, 212, 191, 0.09), transparent 55%);
-    background-attachment: fixed;
+    @apply bg-paper text-ink font-sans antialiased;
+    font-feature-settings: "ss01", "cv01", "cv11";
+    -webkit-font-smoothing: antialiased;
   }
-
   ::selection {
-    background: rgba(124, 92, 255, 0.35);
+    background: rgba(230, 251, 82, 0.55);
+    color: #1b1b17;
   }
-
-  /* Slim, themed scrollbars */
+  /* tabular numerals everywhere data is shown via .num / mono */
+  .font-mono,
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+    scrollbar-color: rgba(27, 27, 23, 0.18) transparent;
   }
   *::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 9px;
+    height: 9px;
   }
   *::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(27, 27, 23, 0.16);
     border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
   }
   *::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.22);
+    background: rgba(27, 27, 23, 0.28);
+    background-clip: padding-box;
   }
 }
 
 @layer components {
-  /* Frosted glass panel — the core surface of the command center */
-  .glass {
-    @apply rounded-2xl border border-line bg-ink-800/60 backdrop-blur-xl shadow-card;
+  /* Friendly rounded surfaces — Intelly-style, soft not glassy */
+  .card {
+    @apply rounded-3xl bg-surface shadow-card;
   }
-  .glass-soft {
-    @apply rounded-xl border border-line bg-ink-800/40 backdrop-blur-md;
+  .panel {
+    @apply rounded-2xl bg-surface shadow-card;
+  }
+  .inset-surface {
+    @apply rounded-2xl bg-surface-3 shadow-[inset_0_0_0_1px_rgba(27,27,23,0.05)];
   }
 
-  .chip {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-white/[0.03]
-           px-2.5 py-1 text-xs font-medium text-slate-300;
+  /* mono micro-label, the Geist/terminal signature */
+  .label {
+    @apply font-mono text-[10px] uppercase tracking-[0.16em] text-ink-3;
+  }
+
+  .rule {
+    @apply h-px w-full bg-line;
+  }
+
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-surface
+           px-2.5 py-1 text-xs font-medium text-ink-2;
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-line
-           bg-white/[0.04] px-3.5 py-2 text-sm font-medium text-slate-200
-           transition-all duration-200 hover:bg-white/[0.08] hover:border-white/20
-           focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/60
-           disabled:opacity-40 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-surface px-4 py-2
+           text-sm font-medium text-ink shadow-hair transition-all duration-200
+           hover:shadow-card hover:-translate-y-px
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/15
+           disabled:opacity-40 disabled:pointer-events-none disabled:translate-y-0;
   }
-  .btn-primary {
-    @apply border-transparent bg-gradient-to-br from-accent to-[#5b8cff] text-white
-           shadow-[0_8px_30px_-10px_rgba(124,92,255,0.7)]
-           hover:from-[#8a6dff] hover:to-[#6f9bff] hover:shadow-glow;
+  .btn-ink {
+    @apply bg-ink text-paper shadow-pop hover:bg-[#000] hover:text-white;
+  }
+  .btn-accent {
+    @apply bg-accent text-accent-ink shadow-pop hover:bg-accent-deep;
   }
 
-  /* Animated gradient hairline used under headers */
-  .hairline {
-    height: 1px;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(124, 92, 255, 0.5),
-      rgba(45, 212, 191, 0.4),
-      transparent
-    );
+  /* dark pill used over the cinematic scene (frame-4 nav chips) */
+  .pill-dark {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-white/15
+           bg-black/35 px-3 py-1.5 text-xs font-medium text-white/90 backdrop-blur-md;
   }
 }
 
 @layer utilities {
-  .text-gradient {
-    @apply bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent;
+  .text-display {
+    letter-spacing: -0.04em;
+    line-height: 0.95;
   }
-  .text-balance {
-    text-wrap: balance;
-  }
-  /* Loading skeleton shimmer */
   .skeleton {
     position: relative;
     overflow: hidden;
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(27, 27, 23, 0.05);
   }
   .skeleton::after {
     content: "";
     position: absolute;
     inset: 0;
     transform: translateX(-100%);
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.06),
-      transparent
-    );
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
     animation: shimmer 1.6s infinite;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Cinematic landscape scene (pure CSS/SVG, no external assets)
+   A continuously transforming dawn → day vista: panning sky, rising sun,
+   drifting fog banks, parallax ridges, film grain + vignette.
+   ───────────────────────────────────────────────────────────────────────── */
+.scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #11212e;
+}
+.scene-sky {
+  position: absolute;
+  left: -5%;
+  right: -5%;
+  top: -60%;
+  height: 220%;
+  background: linear-gradient(
+    180deg,
+    #1a2c3d 0%,
+    #2c4459 16%,
+    #5b7790 34%,
+    #9db3c1 52%,
+    #cfc6ac 68%,
+    #ecd6ab 80%,
+    #f6e6c2 92%,
+    #f8eccf 100%
+  );
+  will-change: transform;
+  animation: sky 64s ease-in-out infinite;
+}
+.scene-sun {
+  position: absolute;
+  left: 64%;
+  bottom: 30%;
+  width: 26vw;
+  height: 26vw;
+  max-width: 360px;
+  max-height: 360px;
+  border-radius: 999px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 246, 224, 0.95) 0%,
+    rgba(255, 226, 170, 0.7) 28%,
+    rgba(255, 210, 150, 0.25) 50%,
+    rgba(255, 210, 150, 0) 70%
+  );
+  filter: blur(2px);
+  will-change: transform, opacity;
+  animation: sun 64s ease-in-out infinite;
+}
+.scene-fog {
+  position: absolute;
+  left: -20%;
+  right: -20%;
+  height: 38%;
+  background: linear-gradient(
+    180deg,
+    rgba(244, 240, 230, 0) 0%,
+    rgba(238, 234, 224, 0.55) 45%,
+    rgba(232, 228, 220, 0.85) 100%
+  );
+  filter: blur(14px);
+  will-change: transform;
+}
+.scene-fog.f1 {
+  bottom: 30%;
+  opacity: 0.7;
+  animation: fog-a 26s ease-in-out infinite alternate;
+}
+.scene-fog.f2 {
+  bottom: 16%;
+  height: 46%;
+  opacity: 0.85;
+  animation: fog-b 34s ease-in-out infinite alternate;
+}
+.scene-fog.f3 {
+  bottom: 0;
+  height: 34%;
+  opacity: 0.95;
+  animation: fog-a 44s ease-in-out infinite alternate;
+}
+.scene-ridges {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+  animation: ridge-drift 40s ease-in-out infinite alternate;
+}
+.scene-grain {
+  position: absolute;
+  inset: -20%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  animation: grain 0.6s steps(2) infinite;
+}
+.scene-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 50% 30%, transparent 55%, rgba(8, 16, 24, 0.5) 100%),
+    linear-gradient(180deg, rgba(8, 16, 24, 0.25) 0%, transparent 22%);
+}
+
+/* headline clip-reveal: each line is a clip mask, inner span rises in */
+.reveal-line {
+  overflow: hidden;
+  display: block;
+}
+.reveal-line > span {
+  display: block;
+  animation: reveal 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-sky,
+  .scene-sun,
+  .scene-fog,
+  .scene-ridges,
+  .scene-grain,
+  .reveal-line > span {
+    animation: none !important;
   }
 }

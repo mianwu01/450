@@ -1,11 +1,26 @@
-# 🛰️ Workflow Command Center
+# Workflow — Academic Workflow Assistant
 
-**Academic Workflow Assistant Agent — GitHub triage slice (frontend milestone)**
+**GitHub triage slice (frontend milestone)**
 
-A polished, dark-mode "command center" that turns a GitHub repository into a
-**prioritized, source-grounded, traceable** work plan. It reads issues, pull
-requests, and repo activity, extracts actionable todos, ranks them P0–P3, and
-links every todo back to the exact GitHub evidence it came from.
+A repository-triage app that turns any GitHub repo into a **prioritized,
+source-grounded, traceable** work plan. It reads issues, pull requests, and repo
+activity, extracts actionable todos, ranks them P0–P3, and links every todo back
+to the exact GitHub evidence it came from.
+
+### Design language
+
+Deliberately *not* a generic "AI dashboard." The system is built on:
+
+- **Geist** (Vercel) — Geist Sans for display + UI, **Geist Mono** for every
+  number, label, and status (tabular numerals throughout). Self-hosted, offline.
+- **Warm "paper" light theme** with soft, rounded, friendly surfaces (inspired by
+  the *Intelly* dashboard direction) — shadow-as-border, not glass or glow.
+- **One restrained accent** (a lemon, never pink) plus a pastel-but-legible
+  priority palette (P0 is coral, not red-glow).
+- A **cinematic CSS/SVG landscape hero** — a continuously transforming dawn→day
+  vista (panning sky, rising sun, drifting fog, parallax ridges, film grain) that
+  **pulls back** from full-bleed into the rounded dashboard banner when you
+  Analyze. No images or video — it's all CSS + SVG, so it ships offline.
 
 > This milestone is **read-only**: read → summarize → prioritize → display.
 > No issues are closed, no PRs commented or merged, no repository state is changed.
@@ -149,11 +164,11 @@ network, empty queue) are all wired and demo-ready.
 
 ```
 project/github-workflow-dashboard/
-├── index.html                      # Inter + JetBrains Mono, dark by default
+├── index.html                      # warm paper light theme, minimal mark
 ├── package.json / vite / tsconfig / tailwind / postcss
 ├── src/
-│   ├── main.tsx · App.tsx          # app shell + state machine + layout
-│   ├── index.css                   # design system: glass, gradients, animations
+│   ├── main.tsx · App.tsx          # app shell + state machine + hero pull-back layout
+│   ├── index.css                   # design system: paper surfaces + cinematic scene
 │   ├── types/domain.ts             # ← the data contract (TodoItem, RepoAnalysisResult, …)
 │   ├── data/mockData.ts            # curated realistic intake bundle
 │   ├── adapters/
@@ -170,10 +185,11 @@ project/github-workflow-dashboard/
 │   │   ├── token.ts                # GitHub token store (localStorage)
 │   │   └── export.ts               # JSON + Markdown export
 │   └── components/
+│       ├── CinematicScene.tsx      # pure CSS/SVG dawn→day landscape (no assets)
+│       ├── HeroStage.tsx           # full-bleed → docked banner pull-back + overview
 │       ├── Sidebar.tsx             # repos + priority breakdown + quick filters
 │       ├── RepoInput.tsx           # owner/repo input + Sample/Live toggle
-│       ├── RepoOverviewCard.tsx    # name, stats, language, health pill
-│       ├── TodaysFocus.tsx         # top 3–5 tasks (hero)
+│       ├── TodaysFocus.tsx         # top 3–5 tasks
 │       ├── PriorityColumn.tsx      # P0/P1/P2/P3 board
 │       ├── TodoCard.tsx            # the card (+ expandable evidence)
 │       ├── EvidenceDrawer.tsx      # trace: rationale + source-grounded snippets

@@ -27,16 +27,12 @@ export function ExportMenu({ result }: { result: RepoAnalysisResult }) {
   return (
     <div className="relative" ref={ref}>
       <button onClick={() => setOpen((o) => !o)} className="btn">
-        {done ? (
-          <Check className="h-4 w-4 text-mint" />
-        ) : (
-          <Download className="h-4 w-4" />
-        )}
-        {done ? `${done}` : "Export"}
-        <ChevronDown className="h-3.5 w-3.5 text-slate-500" />
+        {done ? <Check className="h-4 w-4 text-mint" /> : <Download className="h-4 w-4" />}
+        {done ? done : "Export"}
+        <ChevronDown className="h-3.5 w-3.5 text-ink-3" />
       </button>
       {open && (
-        <div className="absolute right-0 z-20 mt-1.5 w-48 overflow-hidden rounded-xl border border-line bg-ink-800/95 p-1 shadow-card backdrop-blur-xl animate-fade-in">
+        <div className="absolute right-0 z-20 mt-1.5 w-48 overflow-hidden rounded-2xl bg-surface p-1 shadow-lift animate-fade-in">
           <Item
             icon={FileJson}
             label="Download JSON"
@@ -79,9 +75,9 @@ function Item({
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] text-slate-300 transition-colors hover:bg-white/[0.06] hover:text-slate-100"
+      className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13px] text-ink-2 transition-colors hover:bg-surface-3 hover:text-ink"
     >
-      <Icon className="h-4 w-4 text-slate-500" />
+      <Icon className="h-4 w-4 text-ink-3" />
       {label}
     </button>
   );

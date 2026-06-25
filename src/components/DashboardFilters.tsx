@@ -1,4 +1,4 @@
-import { Filter, X, Search } from "lucide-react";
+import { SlidersHorizontal, X, Search } from "lucide-react";
 import type { Filters } from "@/logic/selectors";
 import { filtersActive } from "@/logic/selectors";
 import { PRIORITY_META, PRIORITY_ORDER, STATUS_META } from "@/lib/presentation";
@@ -26,23 +26,21 @@ export function DashboardFilters({
   }
 
   return (
-    <div className="glass-soft flex flex-wrap items-center gap-2 p-2.5">
-      <div className="flex items-center gap-1.5 pl-1 pr-1 text-[11px] font-medium uppercase tracking-wider text-slate-500">
-        <Filter className="h-3.5 w-3.5" /> Filters
+    <div className="card flex flex-wrap items-center gap-2 p-2.5">
+      <div className="label flex items-center gap-1.5 pl-1 pr-1">
+        <SlidersHorizontal className="h-3.5 w-3.5" /> Filters
       </div>
 
-      {/* Search */}
-      <div className="flex items-center gap-1.5 rounded-lg border border-line bg-ink-900/60 px-2.5 py-1.5">
-        <Search className="h-3.5 w-3.5 text-slate-500" />
+      <div className="flex items-center gap-1.5 rounded-full bg-surface-3 px-3 py-1.5">
+        <Search className="h-3.5 w-3.5 text-ink-3" />
         <input
           value={filters.query}
           onChange={(e) => onChange({ ...filters, query: e.target.value })}
           placeholder="Search todos…"
-          className="w-36 bg-transparent text-[12px] text-slate-200 placeholder:text-slate-600 focus:outline-none"
+          className="w-32 bg-transparent text-[12px] text-ink placeholder:text-ink-4 focus:outline-none"
         />
       </div>
 
-      {/* Priority */}
       <div className="flex items-center gap-1">
         {PRIORITY_ORDER.map((p) => {
           const on = filters.priorities.has(p);
@@ -50,16 +48,11 @@ export function DashboardFilters({
           return (
             <button
               key={p}
-              onClick={() =>
-                onChange({ ...filters, priorities: toggle(filters.priorities, p) })
-              }
+              onClick={() => onChange({ ...filters, priorities: toggle(filters.priorities, p) })}
               className={cn(
-                "rounded-md border px-2 py-1 text-[11px] font-semibold transition-all",
-                on
-                  ? `${m.soft} ${m.text} ${m.border}`
-                  : "border-line text-slate-500 hover:text-slate-300",
+                "rounded-full px-2.5 py-1 font-mono text-[11px] font-semibold transition-all",
+                on ? `${m.tint} ${m.onTint}` : "bg-surface-3 text-ink-3 hover:text-ink",
               )}
-              style={on ? { boxShadow: `0 0 0 1px ${m.hex}40` } : undefined}
             >
               {p}
             </button>
@@ -67,7 +60,6 @@ export function DashboardFilters({
         })}
       </div>
 
-      {/* Source type */}
       <Segmented
         options={[
           { value: "issue", label: "Issues" },
@@ -77,33 +69,23 @@ export function DashboardFilters({
         onToggle={(v) =>
           onChange({
             ...filters,
-            sourceTypes: toggle(
-              filters.sourceTypes,
-              v as "issue" | "pull_request",
-            ),
+            sourceTypes: toggle(filters.sourceTypes, v as "issue" | "pull_request"),
           })
         }
       />
 
-      {/* Status */}
       <Select
         placeholder="Status"
         value={[...filters.statuses][0] ?? ""}
         options={STATUS_KEYS.map((k) => ({ value: k, label: STATUS_META[k].label }))}
-        onChange={(v) =>
-          onChange({ ...filters, statuses: v ? new Set([v]) : new Set() })
-        }
+        onChange={(v) => onChange({ ...filters, statuses: v ? new Set([v]) : new Set() })}
       />
-
-      {/* Assignee */}
       <Select
         placeholder="Assignee"
         value={filters.assignee ?? ""}
         options={assignees.map((a) => ({ value: a, label: a }))}
         onChange={(v) => onChange({ ...filters, assignee: v || null })}
       />
-
-      {/* Label */}
       <Select
         placeholder="Label"
         value={filters.label ?? ""}
@@ -123,7 +105,7 @@ export function DashboardFilters({
               query: "",
             })
           }
-          className="ml-auto flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-slate-400 hover:bg-white/5 hover:text-slate-200"
+          className="ml-auto flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] text-ink-2 hover:bg-surface-3"
         >
           <X className="h-3 w-3" /> Clear ({active})
         </button>
@@ -142,7 +124,7 @@ function Segmented<T extends string>({
   onToggle: (v: T) => void;
 }) {
   return (
-    <div className="flex items-center rounded-lg border border-line bg-ink-900/60 p-0.5">
+    <div className="flex items-center rounded-full bg-surface-3 p-0.5">
       {options.map((o) => {
         const on = selected.has(o.value);
         return (
@@ -150,8 +132,8 @@ function Segmented<T extends string>({
             key={o.value}
             onClick={() => onToggle(o.value)}
             className={cn(
-              "rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
-              on ? "bg-white/10 text-slate-100" : "text-slate-500 hover:text-slate-300",
+              "rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
+              on ? "bg-ink text-paper" : "text-ink-3 hover:text-ink",
             )}
           >
             {o.label}
@@ -179,13 +161,13 @@ function Select({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className={cn(
-        "rounded-lg border border-line bg-ink-900/60 px-2 py-1.5 text-[12px] focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/50",
-        value ? "text-slate-100" : "text-slate-500",
+        "rounded-full bg-surface-3 px-2.5 py-1.5 text-[12px] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
+        value ? "text-ink" : "text-ink-3",
       )}
     >
       <option value="">{placeholder}</option>
       {options.map((o) => (
-        <option key={o.value} value={o.value} className="bg-ink-800 text-slate-200">
+        <option key={o.value} value={o.value}>
           {o.label}
         </option>
       ))}

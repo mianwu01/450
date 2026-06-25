@@ -20,10 +20,11 @@ export function BlockedSection({ items }: { items: TodoItem[] }) {
       icon={ShieldAlert}
       title="Blocked / Needs Decision"
       subtitle="Work that can't move without an unblock or a call"
-      accent="text-p0"
+      iconBg="bg-p0-tint"
+      iconColor="text-p0"
       count={items.length}
     >
-      <List items={items} empty="Nothing blocked — the path is clear. 🎉" />
+      <List items={items} empty="Nothing blocked — the path is clear." />
     </Section>
   );
 }
@@ -34,7 +35,8 @@ export function ReviewQueue({ items }: { items: TodoItem[] }) {
       icon={GitPullRequest}
       title="Review Queue"
       subtitle="Open pull requests awaiting movement"
-      accent="text-p2"
+      iconBg="bg-p2-tint"
+      iconColor="text-p2"
       count={items.length}
     >
       <List items={items} empty="No open pull requests to review." />
@@ -48,7 +50,8 @@ export function StaleItems({ items }: { items: TodoItem[] }) {
       icon={Hourglass}
       title="Stale Items"
       subtitle="Untouched for 30+ days — close, revive, or archive"
-      accent="text-p3"
+      iconBg="bg-p3-tint"
+      iconColor="text-p3-ink"
       count={items.length}
     >
       <List items={items} empty="No stale items. Queue is fresh." />
