@@ -1,57 +1,84 @@
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import { getVibe } from "@/data/scenes";
 import type { AppSettings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 
-// Fixed mote positions (foreground dust). Deterministic so it's stable.
 const MOTES = [
   [8, 70], [16, 42], [24, 86], [31, 58], [38, 30], [44, 75],
   [52, 50], [58, 88], [64, 36], [71, 64], [77, 22], [83, 80],
   [89, 48], [94, 68], [12, 18], [48, 14],
 ] as const;
 
+/** Looping video that fades in over its poster once it can play; on error it
+ *  stays transparent so the photographic poster/frames show through. */
+function CineVideo({ src, poster }: { src: string; poster?: string }) {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    setReady(false);
+  }, [src]);
+  return (
+    <video
+      key={src}
+      className={cn("cine-video", ready && "ready")}
+      poster={poster}
+      autoPlay
+      muted
+      loop
+      playsInline
+      preload="auto"
+      onCanPlay={() => setReady(true)}
+      onError={() => setReady(false)}
+    >
+      <source src={src} type="video/mp4" />
+    </video>
+  );
+}
+
 /**
- * Cinematic landscape. Photographic frames cross-fade under a Ken Burns dolly
- * inside pointer-parallax depth planes (it reads inherited --mx/--my). Source is
- * configurable: curated set (auto), a custom image, a looping video, or a
- * minimal CSS-only atmosphere. Everything degrades to the base gradient offline.
+ * Cinematic landscape. Plays a real looping landscape video per vibe (with the
+ * photographic frame as instant poster + offline fallback), inside pointer-
+ * parallax depth planes under a Ken Burns dolly. Day/night mood, god rays,
+ * drifting fog, motes, grade, grain, vignette. Source + mood are configurable.
  */
 export const CinematicScene = memo(function CinematicScene({
   background,
+  mood = "day",
   still = false,
 }: {
   background: AppSettings["background"];
+  mood?: "day" | "night";
   still?: boolean;
 }) {
   const kind = background.kind;
   const customUrl = background.url.trim();
-  const useVideo = kind === "video" && customUrl;
-  const useImage = kind === "image" && customUrl;
-  const useCurated = kind === "auto" || (!useVideo && !useImage && kind !== "minimal");
+  const isCustomVideo = kind === "video" && !!customUrl;
+  const isCustomImage = kind === "image" && !!customUrl;
+  const isMinimal = kind === "minimal";
+  const isCurated = !isCustomVideo && !isCustomImage && !isMinimal;
   const vibe = getVibe(background.vibe);
+  const curatedVideo = isCurated && background.useVideo && !!vibe.video;
+  const poster = vibe.frames[0]?.url;
 
   return (
-    <div className={cn("cine cine-letterbox", still && "still")}>
+    <div className={cn("cine cine-letterbox", still && "still", mood === "night" && "night")}>
       <div className="cine-base" />
 
       <div className="cine-plane p-img">
-        {useVideo && (
-          <video
-            className="cine-img solo absolute h-full w-full object-cover"
-            src={customUrl}
-            autoPlay
-            muted
-            loop
-            playsInline
-          />
+        {isCustomVideo && <CineVideo src={customUrl} />}
+        {isCustomImage && (
+          <div className="cine-img solo" style={{ backgroundImage: `url("${customUrl}")` }} />
         )}
-        {useImage && (
-          <div
-            className="cine-img solo"
-            style={{ backgroundImage: `url("${customUrl}")` }}
-          />
+
+        {isCurated && curatedVideo && (
+          <>
+            <div
+              className="cine-img solo"
+              style={{ backgroundImage: `url("${poster}")`, transformOrigin: vibe.frames[0].origin }}
+            />
+            <CineVideo src={vibe.video!} poster={poster} />
+          </>
         )}
-        {useCurated &&
+        {isCurated && !curatedVideo &&
           vibe.frames.map((s, i) => (
             <div
               key={s.url}
@@ -85,9 +112,11 @@ export const CinematicScene = memo(function CinematicScene({
         ))}
       </div>
 
+      <div className="cine-night-overlay" />
+      <div className="stars" />
       <div
         className="cine-grade"
-        style={useCurated && vibe.grade ? { background: vibe.grade } : undefined}
+        style={isCurated && vibe.grade ? { background: vibe.grade } : undefined}
       />
       <div className="cine-grain" />
       <div className="cine-vignette" />

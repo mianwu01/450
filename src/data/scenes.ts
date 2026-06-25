@@ -18,15 +18,23 @@ export interface Vibe {
   label: string;
   emoji: string;
   frames: Scene[];
+  /** optional looping landscape video (poster = first frame) */
+  video?: string;
   /** optional cinematic colour-grade overlay tuned to the mood */
   grade?: string;
 }
+
+// Direct, hotlinkable Pexels CDN renditions (Pexels license — free to use).
+// Each is a verified landscape loop; the first photo frame is the poster.
+const PX = (id: string, file: string) =>
+  `https://videos.pexels.com/video-files/${id}/${file}.mp4`;
 
 export const VIBES: Vibe[] = [
   {
     id: "forest",
     label: "Forest Dawn",
     emoji: "🌲",
+    video: PX("32313069", "13781248_1920_1080_60fps"),
     frames: [
       { url: U("photo-1470071459604-3b5ec3a7fe05"), origin: "60% 40%" },
       { url: U("photo-1483728642387-6c3bdd6c93e5"), origin: "40% 55%" },
@@ -37,6 +45,7 @@ export const VIBES: Vibe[] = [
     id: "snowy",
     label: "Snowy Peaks",
     emoji: "🏔️",
+    video: PX("35488888", "15034641_2560_1440_30fps"),
     frames: [
       { url: U("photo-1483921020237-2ff51e8e4b22"), origin: "55% 40%" },
       { url: U("photo-1512273222628-4daea6e55abb"), origin: "45% 50%" },
@@ -48,6 +57,7 @@ export const VIBES: Vibe[] = [
     id: "aurora",
     label: "Aurora",
     emoji: "🌌",
+    video: PX("28492331", "12397894_3840_2160_24fps"),
     frames: [
       { url: U("photo-1483347756197-71ef80e95f73"), origin: "50% 35%" },
       { url: U("photo-1507272931001-fc06c17e4f43"), origin: "55% 45%" },
@@ -59,6 +69,7 @@ export const VIBES: Vibe[] = [
     id: "desert",
     label: "Desert Dunes",
     emoji: "🏜️",
+    video: PX("33665977", "14303046_3840_2160_30fps"),
     frames: [
       { url: U("photo-1511860810434-a92f84c6f01e"), origin: "55% 50%" },
       { url: U("photo-1506147854445-5a3f534191f8"), origin: "60% 55%" },
@@ -70,6 +81,7 @@ export const VIBES: Vibe[] = [
     id: "ocean",
     label: "Ocean Cliffs",
     emoji: "🌊",
+    video: PX("32322689", "13787256_1920_1080_30fps"),
     frames: [
       { url: U("photo-1637548076375-32e22046c637"), origin: "50% 45%" },
       { url: U("photo-1433190152045-5a94184895da"), origin: "55% 50%" },

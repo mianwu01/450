@@ -18,24 +18,25 @@ Deliberately *not* a generic "AI dashboard." The system is built on:
 - **One restrained accent** (a lemon, never pink) plus a pastel-but-legible
   priority palette (P0 is coral, not red-glow).
 - A **cinematic landscape hero** that feels like film, not a graphic:
-  - **photographic** majestic landscapes (curated, free-to-use Unsplash) that
-    **cross-fade** under a slow **Ken Burns dolly-out** (the camera widens from a
-    narrow to a grand view over time);
-  - **pointer parallax** — depth planes (photo, fog, god-rays, foreground motes)
-    shift against the cursor for a live dynamic-camera feel;
-  - god rays, drifting fog, floating motes, a colour grade, film grain and a
-    letterbox finish;
+  - a **real looping landscape video** per vibe (free-to-use Pexels), with a
+    photographic still as **instant poster + offline fallback**, under a slow
+    **Ken Burns dolly-out** (the camera widens from a narrow to a grand view);
+  - **pointer parallax that follows the cursor** — depth planes (video, fog,
+    god-rays, foreground motes) drift toward where you point, at different rates;
+  - **day ⇄ night** mood, toggled from the **Workflow** mark (sun ⇄ moon), which
+    re-grades the scene and reveals a starfield at night;
+  - god rays, drifting fog, floating motes, colour grade, film grain, letterbox;
   - it **pulls back** from full-bleed into the rounded dashboard banner on Analyze.
   - **Switchable scene vibes, any time** — a built-in gallery (🌲 Forest Dawn ·
-    🏔️ Snowy Peaks · 🌌 Aurora · 🏜️ Desert Dunes · 🌊 Ocean Cliffs), each a curated
-    trio of frames with its own colour grade, changeable live from the hero
-    switcher or the settings drawer. You can also point it at **your own image or
-    a looping video**, or **Minimal** CSS; offline it degrades to an atmospheric
-    gradient.
+    🏔️ Snowy Peaks · 🌌 Aurora · 🏜️ Desert Dunes · 🌊 Ocean Cliffs), each a real
+    video + curated stills with its own colour grade, changeable live from the
+    hero switcher or settings. You can also point it at **your own image/video**,
+    drop to **photos-only**, or **Minimal** CSS; offline it degrades gracefully.
 
 ### Functional shell (not decoration)
 
-- **Workflow** (top-left / sidebar) is the **home** control — back to a new analysis.
+- The **Workflow** mark is a **day ⇄ night** switch for the scene (sun ⇄ moon);
+  the sidebar brand returns **home** for a new analysis.
 - **Academic Workflow Assistant** opens a **settings drawer** (on hover or click):
   ranking **model** + **API base/key** (reserved wiring for the future model
   adapter), **scene source**, **motion / parallax intensity**, and **background

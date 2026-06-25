@@ -147,6 +147,23 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
                 />
               </Field>
             )}
+            {s.background.kind === "auto" && (
+              <Toggle
+                label="Play motion video (when available)"
+                checked={s.background.useVideo}
+                onChange={(v) => updateSettings({ background: { ...s.background, useVideo: v } })}
+              />
+            )}
+            <Field label="Time of day">
+              <Segmented
+                value={s.mood}
+                onChange={(m) => updateSettings({ mood: m })}
+                options={[
+                  { value: "day", label: "☀︎ Day" },
+                  { value: "night", label: "☾ Night" },
+                ]}
+              />
+            </Field>
             <Toggle
               label="Pointer parallax"
               checked={s.motion.parallax}

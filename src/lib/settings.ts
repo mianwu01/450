@@ -15,7 +15,9 @@ export interface AppSettings {
   model: string;
   apiBaseUrl: string;
   apiKey: string;
-  background: { kind: BackgroundKind; url: string; vibe: string };
+  background: { kind: BackgroundKind; url: string; vibe: string; useVideo: boolean };
+  /** Scene time-of-day mood, toggled from the Workflow mark. */
+  mood: "day" | "night";
   motion: { parallax: boolean; intensity: number; reduced: boolean };
   music: { enabled: boolean; url: string; volume: number };
 }
@@ -36,7 +38,8 @@ const DEFAULTS: AppSettings = {
   model: "deterministic",
   apiBaseUrl: "https://api.anthropic.com",
   apiKey: "",
-  background: { kind: "auto", url: "", vibe: "forest" },
+  background: { kind: "auto", url: "", vibe: "forest", useVideo: true },
+  mood: "day",
   motion: { parallax: true, intensity: 1, reduced: false },
   music: { enabled: false, url: "", volume: 0.4 },
 };

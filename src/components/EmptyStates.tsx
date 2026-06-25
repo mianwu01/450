@@ -60,20 +60,3 @@ export function ErrorState({
   );
 }
 
-export function WelcomeFeatures() {
-  const items = [
-    { t: "Source-grounded", d: "Every todo is extracted from a real issue, PR, or comment — never invented." },
-    { t: "Traceable", d: "Open the Evidence drawer on any card to see the exact snippet and link." },
-    { t: "Read-only", d: "This milestone only reads, summarizes, and prioritizes. No write actions." },
-  ];
-  return (
-    <div className="grid gap-3 sm:grid-cols-3">
-      {items.map((f) => (
-        <div key={f.t} className="panel p-4">
-          <div className="text-[13px] font-semibold tracking-tight text-ink">{f.t}</div>
-          <p className="mt-1 text-[12px] leading-relaxed text-ink-2">{f.d}</p>
-        </div>
-      ))}
-    </div>
-  );
-}

@@ -8,7 +8,7 @@ import { compactNumber, timeAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { CinematicScene } from "./CinematicScene";
 import { RepoInput } from "./RepoInput";
-import { BrandButton, AssistantButton, MusicButton, VibeSwitcher } from "./Controls";
+import { MoodToggle, AssistantButton, MusicButton, VibeSwitcher } from "./Controls";
 
 type Phase = "welcome" | "loading" | "ready" | "error";
 
@@ -28,7 +28,6 @@ export function HeroStage({
   mode,
   onMode,
   onOpenSettings,
-  onHome,
   audio,
 }: {
   phase: Phase;
@@ -40,7 +39,6 @@ export function HeroStage({
   mode: AdapterMode;
   onMode: (m: AdapterMode) => void;
   onOpenSettings: () => void;
-  onHome: () => void;
   audio: AudioCtl;
 }) {
   const welcome = phase === "welcome";
@@ -60,12 +58,12 @@ export function HeroStage({
           : "m-3 h-[300px] rounded-[28px] shadow-lift md:m-4 md:h-[340px]",
       )}
     >
-      <CinematicScene background={s.background} still={s.motion.reduced} />
+      <CinematicScene background={s.background} mood={s.mood} still={s.motion.reduced} />
 
       {welcome && (
         <div className="absolute inset-0 flex flex-col">
           <div className="flex items-center justify-between px-5 py-5 md:px-9">
-            <BrandButton onClick={onHome} dark />
+            <MoodToggle dark />
             <div className="flex items-center gap-2">
               <VibeSwitcher dark />
               <MusicButton

@@ -6,6 +6,7 @@ import {
   ChevronDown,
   Cpu,
   Check,
+  Moon,
 } from "lucide-react";
 import { modelLabel, useSettings, updateSettings } from "@/lib/settings";
 import { VIBES, getVibe, vibeThumb } from "@/data/scenes";
@@ -51,6 +52,54 @@ export function BrandButton({ onClick, dark }: { onClick: () => void; dark?: boo
         )}
       >
         Workflow
+      </span>
+    </button>
+  );
+}
+
+/**
+ * The Workflow mark doubles as a day↔night switch for the cinematic scene:
+ * the sun-horizon mark (day) flips to a moon (night) and re-grades the scene.
+ */
+export function MoodToggle({ dark }: { dark?: boolean }) {
+  const s = useSettings();
+  const night = s.mood === "night";
+  return (
+    <button
+      onClick={() => updateSettings({ mood: night ? "day" : "night" })}
+      title={night ? "Switch to day" : "Switch to night"}
+      className={cn(
+        "group flex items-center gap-2.5 rounded-full pr-3 transition-colors",
+        dark ? "hover:bg-white/10" : "hover:bg-surface-3",
+      )}
+    >
+      {night ? (
+        <span
+          className={cn(
+            "grid h-8 w-8 place-items-center rounded-lg",
+            dark ? "bg-white/10 ring-1 ring-white/20" : "bg-ink",
+          )}
+        >
+          <Moon className="h-4 w-4 text-accent" />
+        </span>
+      ) : (
+        <Mark tone={dark ? "dark" : "light"} />
+      )}
+      <span
+        className={cn(
+          "font-mono text-[12px] uppercase tracking-[0.2em]",
+          dark ? "text-white/85" : "text-ink",
+        )}
+      >
+        Workflow
+      </span>
+      <span
+        className={cn(
+          "ml-0.5 hidden rounded-full px-1.5 py-0.5 text-[9px] font-medium sm:inline",
+          dark ? "bg-white/10 text-white/70" : "bg-surface-3 text-ink-3",
+        )}
+      >
+        {night ? "night" : "day"}
       </span>
     </button>
   );

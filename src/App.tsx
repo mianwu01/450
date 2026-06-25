@@ -28,7 +28,7 @@ import { PriorityBoard } from "@/components/PriorityColumn";
 import { BlockedSection, ReviewQueue, StaleItems } from "@/components/DashboardSections";
 import { DashboardFilters } from "@/components/DashboardFilters";
 import { AnalysisLoadingState } from "@/components/AnalysisLoadingState";
-import { ErrorState, WelcomeFeatures } from "@/components/EmptyStates";
+import { ErrorState } from "@/components/EmptyStates";
 import { ExportMenu } from "@/components/ExportMenu";
 import { TokenSettings } from "@/components/TokenSettings";
 import { SettingsPanel } from "@/components/SettingsPanel";
@@ -195,17 +195,10 @@ export default function App() {
             mode={mode}
             onMode={setMode}
             onOpenSettings={() => setSettingsOpen(true)}
-            onHome={goHome}
             audio={{ playing: audio.playing, hasTrack: audio.hasTrack, toggle: audio.toggle }}
           />
 
           <div className="mx-auto max-w-6xl px-4 pb-10 md:px-6">
-            {welcome && (
-              <div className="py-6">
-                <WelcomeFeatures />
-              </div>
-            )}
-
             {phase === "loading" && (
               <div className="mx-auto max-w-xl pt-5">
                 <AnalysisLoadingState steps={steps} />
