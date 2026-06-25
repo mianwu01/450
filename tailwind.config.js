@@ -14,42 +14,38 @@ export default {
         tighter2: "-0.03em",
       },
       colors: {
-        // Warm "paper" canvas — the Intelly-style friendly light surface
+        // Neutrals are CSS-variable backed so the whole app flips day ⇄ night.
         paper: {
-          DEFAULT: "#F4F2EB",
-          deep: "#ECEAE1",
-          warm: "#F8F6F0",
+          DEFAULT: "rgb(var(--c-paper) / <alpha-value>)",
+          deep: "rgb(var(--c-paper-deep) / <alpha-value>)",
+          warm: "rgb(var(--c-paper-warm) / <alpha-value>)",
         },
         surface: {
-          DEFAULT: "#FFFFFF",
-          2: "#FBFAF6",
-          3: "#F3F1EA",
+          DEFAULT: "rgb(var(--c-surface) / <alpha-value>)",
+          2: "rgb(var(--c-surface-2) / <alpha-value>)",
+          3: "rgb(var(--c-surface-3) / <alpha-value>)",
         },
         ink: {
-          DEFAULT: "#1B1B17",
-          2: "#55544C",
-          3: "#8C8A7E",
-          4: "#B6B4A8",
+          DEFAULT: "rgb(var(--c-ink) / <alpha-value>)",
+          2: "rgb(var(--c-ink-2) / <alpha-value>)",
+          3: "rgb(var(--c-ink-3) / <alpha-value>)",
+          4: "rgb(var(--c-ink-4) / <alpha-value>)",
         },
         line: {
-          DEFAULT: "rgba(27,27,23,0.09)",
-          strong: "rgba(27,27,23,0.14)",
+          DEFAULT: "var(--c-line)",
+          strong: "var(--c-line-strong)",
         },
-        // One confident, non-pink accent — the reference's lemon
-        accent: {
-          DEFAULT: "#E6FB52",
-          deep: "#D2EC2E",
-          ink: "#1B1B17",
-        },
-        // Pastel-but-legible priority system (coral, NOT pink)
-        p0: { DEFAULT: "#F0563E", tint: "#FCE6E0", ink: "#9E2C1B" },
-        p1: { DEFAULT: "#E8902B", tint: "#FAEAD0", ink: "#965107" },
-        p2: { DEFAULT: "#3B8FDE", tint: "#E2EEFB", ink: "#1A5798" },
-        p3: { DEFAULT: "#7C8B86", tint: "#E9EDEA", ink: "#4C5854" },
-        teal: { DEFAULT: "#179A92", tint: "#DDF1EF" },
-        mint: { DEFAULT: "#27A877", tint: "#DBF1E7" },
-        sky: { DEFAULT: "#3B8FDE", tint: "#E2EEFB" },
-        honey: { DEFAULT: "#E8902B", tint: "#FAEAD0" },
+        // One confident, non-pink accent — the reference's lemon (static both themes)
+        accent: { DEFAULT: "#E6FB52", deep: "#D2EC2E", ink: "#1B1B17" },
+        // Priority system — vivid base is static; tint/ink flip per theme.
+        p0: { DEFAULT: "#F0563E", tint: "var(--p0-tint)", ink: "var(--p0-ink)" },
+        p1: { DEFAULT: "#E8902B", tint: "var(--p1-tint)", ink: "var(--p1-ink)" },
+        p2: { DEFAULT: "#3B8FDE", tint: "var(--p2-tint)", ink: "var(--p2-ink)" },
+        p3: { DEFAULT: "#7C8B86", tint: "var(--p3-tint)", ink: "var(--p3-ink)" },
+        teal: { DEFAULT: "#179A92", tint: "var(--teal-tint)" },
+        mint: { DEFAULT: "#27A877", tint: "var(--mint-tint)" },
+        sky: { DEFAULT: "#3B8FDE", tint: "var(--sky-tint)" },
+        honey: { DEFAULT: "#E8902B", tint: "var(--honey-tint)" },
       },
       borderRadius: {
         lg: "0.875rem",
@@ -59,11 +55,11 @@ export default {
         "4xl": "2.5rem",
       },
       boxShadow: {
-        // shadow-as-border (Geist technique) + soft ambient lift
-        hair: "0 0 0 1px rgba(27,27,23,0.07)",
-        card: "0 0 0 1px rgba(27,27,23,0.06), 0 1px 2px rgba(27,27,23,0.04), 0 14px 32px -22px rgba(27,27,23,0.30)",
-        lift: "0 0 0 1px rgba(27,27,23,0.06), 0 2px 4px rgba(27,27,23,0.05), 0 26px 50px -28px rgba(27,27,23,0.40)",
-        pop: "0 8px 24px -10px rgba(27,27,23,0.30)",
+        // shadow-as-border (Geist technique) + soft ambient lift; flips per theme
+        hair: "var(--shadow-hair)",
+        card: "var(--shadow-card)",
+        lift: "var(--shadow-lift)",
+        pop: "var(--shadow-pop)",
         inset: "inset 0 1px 0 rgba(255,255,255,0.6)",
       },
       transitionTimingFunction: {

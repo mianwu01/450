@@ -124,6 +124,11 @@ export default function App() {
     el?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [expandedId]);
 
+  // Day ⇄ night re-themes the whole app (surfaces, text, borders, shadows).
+  useEffect(() => {
+    document.documentElement.classList.toggle("night", settings.mood === "night");
+  }, [settings.mood]);
+
   const welcome = phase === "welcome";
 
   return (
@@ -198,6 +203,7 @@ export default function App() {
             audio={{ playing: audio.playing, hasTrack: audio.hasTrack, toggle: audio.toggle }}
           />
 
+          {!welcome && (
           <div className="mx-auto max-w-6xl px-4 pb-10 md:px-6">
             {phase === "loading" && (
               <div className="mx-auto max-w-xl pt-5">
@@ -254,6 +260,7 @@ export default function App() {
               </div>
             )}
           </div>
+          )}
         </div>
       </main>
 

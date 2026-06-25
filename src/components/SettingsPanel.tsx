@@ -27,7 +27,7 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
   return (
     <div className="fixed inset-0 z-50">
       <div
-        className="absolute inset-0 bg-ink/30 backdrop-blur-[2px] animate-fade-in"
+        className="absolute inset-0 bg-black/45 backdrop-blur-[2px] animate-fade-in"
         onClick={onClose}
       />
       <aside className="absolute right-0 top-0 flex h-full w-[380px] max-w-[92vw] flex-col bg-paper shadow-lift animate-slide-in-right">

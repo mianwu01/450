@@ -9,6 +9,77 @@
        inline on the hero element, and descendants inherit the live value. */
     --mx: 0;
     --my: 0;
+
+    /* ── Day theme (default) ── */
+    --c-paper: 244 242 235;
+    --c-paper-deep: 236 234 225;
+    --c-paper-warm: 248 246 240;
+    --c-surface: 255 255 255;
+    --c-surface-2: 251 250 246;
+    --c-surface-3: 243 241 234;
+    --c-ink: 27 27 23;
+    --c-ink-2: 85 84 76;
+    --c-ink-3: 140 138 126;
+    --c-ink-4: 182 180 168;
+    --c-line: rgba(27, 27, 23, 0.09);
+    --c-line-strong: rgba(27, 27, 23, 0.14);
+
+    --p0-tint: #fce6e0;
+    --p0-ink: #9e2c1b;
+    --p1-tint: #faead0;
+    --p1-ink: #965107;
+    --p2-tint: #e2eefb;
+    --p2-ink: #1a5798;
+    --p3-tint: #e9edea;
+    --p3-ink: #4c5854;
+    --mint-tint: #dbf1e7;
+    --sky-tint: #e2eefb;
+    --honey-tint: #faead0;
+    --teal-tint: #ddf1ef;
+
+    --shadow-hair: 0 0 0 1px rgba(27, 27, 23, 0.07);
+    --shadow-card: 0 0 0 1px rgba(27, 27, 23, 0.06), 0 1px 2px rgba(27, 27, 23, 0.04),
+      0 14px 32px -22px rgba(27, 27, 23, 0.3);
+    --shadow-lift: 0 0 0 1px rgba(27, 27, 23, 0.06), 0 2px 4px rgba(27, 27, 23, 0.05),
+      0 26px 50px -28px rgba(27, 27, 23, 0.4);
+    --shadow-pop: 0 8px 24px -10px rgba(27, 27, 23, 0.3);
+  }
+
+  /* ── Night theme (toggled by the Workflow mark → html.night) ── */
+  html.night {
+    color-scheme: dark;
+    --c-paper: 15 17 22;
+    --c-paper-deep: 11 12 16;
+    --c-paper-warm: 19 22 28;
+    --c-surface: 26 29 36;
+    --c-surface-2: 32 35 44;
+    --c-surface-3: 42 46 56;
+    --c-ink: 236 238 243;
+    --c-ink-2: 176 180 191;
+    --c-ink-3: 128 133 146;
+    --c-ink-4: 90 94 107;
+    --c-line: rgba(255, 255, 255, 0.1);
+    --c-line-strong: rgba(255, 255, 255, 0.16);
+
+    --p0-tint: rgba(240, 86, 62, 0.2);
+    --p0-ink: #ffb4a8;
+    --p1-tint: rgba(232, 144, 43, 0.2);
+    --p1-ink: #f6c78a;
+    --p2-tint: rgba(59, 143, 222, 0.22);
+    --p2-ink: #aed2f4;
+    --p3-tint: rgba(255, 255, 255, 0.08);
+    --p3-ink: #c2cbd4;
+    --mint-tint: rgba(39, 168, 119, 0.2);
+    --sky-tint: rgba(59, 143, 222, 0.22);
+    --honey-tint: rgba(232, 144, 43, 0.2);
+    --teal-tint: rgba(23, 154, 146, 0.22);
+
+    --shadow-hair: 0 0 0 1px rgba(255, 255, 255, 0.08);
+    --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 1px 2px rgba(0, 0, 0, 0.4),
+      0 14px 32px -22px rgba(0, 0, 0, 0.7);
+    --shadow-lift: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 2px 4px rgba(0, 0, 0, 0.5),
+      0 26px 50px -28px rgba(0, 0, 0, 0.8);
+    --shadow-pop: 0 8px 24px -10px rgba(0, 0, 0, 0.6);
   }
   html,
   body,
@@ -30,20 +101,20 @@
   }
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(27, 27, 23, 0.18) transparent;
+    scrollbar-color: rgb(var(--c-ink) / 0.18) transparent;
   }
   *::-webkit-scrollbar {
     width: 9px;
     height: 9px;
   }
   *::-webkit-scrollbar-thumb {
-    background: rgba(27, 27, 23, 0.16);
+    background: rgb(var(--c-ink) / 0.16);
     border-radius: 999px;
     border: 2px solid transparent;
     background-clip: padding-box;
   }
   *::-webkit-scrollbar-thumb:hover {
-    background: rgba(27, 27, 23, 0.28);
+    background: rgb(var(--c-ink) / 0.28);
     background-clip: padding-box;
   }
 }

@@ -23,8 +23,10 @@ Deliberately *not* a generic "AI dashboard." The system is built on:
     **Ken Burns dolly-out** (the camera widens from a narrow to a grand view);
   - **pointer parallax that follows the cursor** — depth planes (video, fog,
     god-rays, foreground motes) drift toward where you point, at different rates;
-  - **day ⇄ night** mood, toggled from the **Workflow** mark (sun ⇄ moon), which
-    re-grades the scene and reveals a starfield at night;
+  - **day ⇄ night** mood, toggled from the **Workflow** mark (sun ⇄ moon): it
+    re-grades the scene and reveals a starfield, **and flips the entire app**
+    between the warm light theme and a deep dark theme (surfaces, text, borders,
+    shadows, and badge tints all change);
   - god rays, drifting fog, floating motes, colour grade, film grain, letterbox;
   - it **pulls back** from full-bleed into the rounded dashboard banner on Analyze.
   - **Switchable scene vibes, any time** — a built-in gallery (🌲 Forest Dawn ·
