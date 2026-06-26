@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LayoutGrid, Rows3, ListChecks, Clock3 } from "lucide-react";
+import { LayoutGrid, Rows3, ListChecks, Clock3, KeyRound } from "lucide-react";
 import type { RepoAnalysisResult, TodoPriority } from "@/types/domain";
 import { runAnalysis, AnalysisError, ANALYSIS_STEPS } from "@/adapters";
 import type { AdapterMode, StepId, StepStatus, AnalysisErrorKind } from "@/adapters";
@@ -15,6 +15,16 @@ import {
   uniqueLabels,
 } from "@/logic/selectors";
 import type { Filters } from "@/logic/selectors";
+import {
+  loadWorkspace,
+  saveWorkspace,
+  upsertRepo,
+  removeRepo,
+  setFiltersFor,
+  patchResult,
+} from "@/logic/workspace";
+import type { WorkspaceState } from "@/logic/workspace";
+import { evidenceStore, collectEvidence } from "@/logic/evidenceStore";
 import { cn } from "@/lib/utils";
 import { useSettings, isGenerative } from "@/lib/settings";
 import { useAudio } from "@/hooks/useAudio";
@@ -47,35 +57,63 @@ type View = "board" | "streams";
 const initialSteps = (): Record<StepId, StepStatus> =>
   Object.fromEntries(ANALYSIS_STEPS.map((s) => [s.id, "pending"])) as Record<StepId, StepStatus>;
 
+function briefFromResult(r: RepoAnalysisResult | null, generative: boolean): BriefState | null {
+  return generative && r?.brief ? { status: "done", text: r.brief } : null;
+}
+
 export default function App() {
+  const settings = useSettings();
   const [mode, setMode] = useState<AdapterMode>("mock");
   const [input, setInput] = useState("hkuds/academic-workflow-agent");
-  const [phase, setPhase] = useState<Phase>("welcome");
+  const [ws, setWs] = useState<WorkspaceState>(loadWorkspace);
+  const [phase, setPhase] = useState<Phase>(() =>
+    loadWorkspace().activeRepo ? "ready" : "welcome",
+  );
   const [steps, setSteps] = useState<Record<StepId, StepStatus>>(initialSteps);
-  const [result, setResult] = useState<RepoAnalysisResult | null>(null);
   const [error, setError] = useState<
     { kind: AnalysisErrorKind; message: string; detail?: string } | null
   >(null);
-  const [filters, setFilters] = useState<Filters>(emptyFilters());
   const [view, setView] = useState<View>("streams");
-  const [history, setHistory] = useState<Record<string, RepoAnalysisResult>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [brief, setBrief] = useState<BriefState | null>(null);
+  const [brief, setBrief] = useState<BriefState | null>(() => {
+    const w = loadWorkspace();
+    const r = w.activeRepo ? (w.entries[w.activeRepo]?.result ?? null) : null;
+    return briefFromResult(r, isGenerative(settings.model));
+  });
   const [modelHealth, setModelHealth] = useState<ModelHealth | null>(null);
 
-  const settings = useSettings();
   const audio = useAudio(settings.music);
-
   const abortRef = useRef<AbortController | null>(null);
   const [loadingLabel, setLoadingLabel] = useState(input);
+
+  // ── Derived from the active repo ──
+  const activeRepo = ws.activeRepo;
+  const entry = activeRepo ? ws.entries[activeRepo] : undefined;
+  const result = entry?.result ?? null;
+  const filters = entry?.filters ?? emptyFilters();
+
+  // Persist the workspace whenever it changes.
+  useEffect(() => saveWorkspace(ws), [ws]);
+
+  // Re-index restored evidence into the store once, on mount.
+  useEffect(() => {
+    for (const name of ws.order) {
+      const r = ws.entries[name]?.result;
+      if (r) evidenceStore.put(collectEvidence(r.repoName, r.todos));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function goHome() {
     setPhase("welcome");
     setInput("");
   }
 
-  // Resolve the model endpoint (local nanoGPT defaults to localhost:8080).
+  function setActiveFilters(next: Filters) {
+    if (activeRepo) setWs((s) => setFiltersFor(s, activeRepo, next));
+  }
+
   function modelUrl(): string {
     const u = settings.apiBaseUrl;
     if (settings.model === "nanogpt-local")
@@ -83,20 +121,18 @@ export default function App() {
     return u;
   }
 
-  // Generate the natural-language brief with the selected model (non-blocking).
   async function runBrief(res: RepoAnalysisResult) {
     if (!isGenerative(settings.model)) return;
     setBrief({ status: "loading" });
     try {
       const text = await generateBrief(res, modelUrl(), settings.apiKey || undefined);
       setBrief({ status: "done", text });
-      setResult((r) => (r && r.repoName === res.repoName ? { ...r, brief: text, engine: settings.model } : r));
+      setWs((s) => patchResult(s, res.repoName, { brief: text, engine: settings.model }));
     } catch (e) {
       setBrief({ status: "error", error: (e as Error).message });
     }
   }
 
-  // Probe the local model's health so the engine chip + brief panel can show it.
   useEffect(() => {
     if (settings.model !== "nanogpt-local") {
       setModelHealth(null);
@@ -123,7 +159,6 @@ export default function App() {
     setPhase("loading");
     setError(null);
     setSteps(initialSteps());
-    setFilters(emptyFilters());
     setBrief(null);
 
     try {
@@ -133,8 +168,8 @@ export default function App() {
         onStep: (id, status) => setSteps((prev) => ({ ...prev, [id]: status })),
       });
       if (ctrl.signal.aborted) return;
-      setResult(res);
-      setHistory((h) => ({ ...h, [res.repoName]: res }));
+      evidenceStore.put(collectEvidence(res.repoName, res.todos));
+      setWs((s) => upsertRepo(s, res, Date.now()));
       setPhase("ready");
       void runBrief(res);
     } catch (e) {
@@ -148,6 +183,32 @@ export default function App() {
     }
   }
 
+  function selectRepo(name: string) {
+    const r = ws.entries[name]?.result;
+    if (!r) return;
+    setWs((s) => ({ ...s, activeRepo: name }));
+    setPhase("ready");
+    setExpandedId(null);
+    if (isGenerative(settings.model)) {
+      if (r.brief) setBrief({ status: "done", text: r.brief });
+      else {
+        setBrief(null);
+        void runBrief(r);
+      }
+    } else {
+      setBrief(null);
+    }
+  }
+
+  function deleteRepo(name: string) {
+    evidenceStore.removeRepo(name);
+    setWs((s) => {
+      const next = removeRepo(s, name);
+      if (!next.activeRepo) setPhase("welcome");
+      return next;
+    });
+  }
+
   const filtered = useMemo(
     () => (result ? applyFilters(result.todos, filters) : []),
     [result, filters],
@@ -158,8 +219,12 @@ export default function App() {
     [result],
   );
   const repoTabs: RepoTab[] = useMemo(
-    () => Object.values(history).map((r) => ({ name: r.repoName, health: r.healthStatus })),
-    [history],
+    () =>
+      ws.order
+        .map((n) => ws.entries[n]?.result)
+        .filter(Boolean)
+        .map((r) => ({ name: r!.repoName, health: r!.healthStatus })),
+    [ws],
   );
   const priorityFilter: TodoPriority | null =
     filters.priorities.size === 1 ? [...filters.priorities][0] : null;
@@ -171,7 +236,6 @@ export default function App() {
     el?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [expandedId]);
 
-  // Day ⇄ night re-themes the whole app (surfaces, text, borders, shadows).
   useEffect(() => {
     document.documentElement.classList.toggle("night", settings.mood === "night");
   }, [settings.mood]);
@@ -183,22 +247,16 @@ export default function App() {
       {!welcome && (
         <Sidebar
           repos={repoTabs}
-          activeRepo={result?.repoName ?? null}
-          onSelectRepo={(name) => {
-            const r = history[name];
-            if (r) {
-              setResult(r);
-              setPhase("ready");
-              setFilters(emptyFilters());
-            }
-          }}
+          activeRepo={activeRepo}
+          onSelectRepo={selectRepo}
+          onRemoveRepo={deleteRepo}
           onNewRepo={goHome}
           onHome={goHome}
           counts={counts}
           total={result?.todos.length ?? 0}
           priorityFilter={priorityFilter}
           onPriorityFilter={(p) =>
-            setFilters((f) => ({ ...f, priorities: p ? new Set([p]) : new Set() }))
+            setActiveFilters({ ...filters, priorities: p ? new Set([p]) : new Set() })
           }
           mode={mode}
         />
@@ -255,70 +313,81 @@ export default function App() {
           />
 
           {!welcome && (
-          <div className="mx-auto max-w-6xl px-4 pb-10 md:px-6">
-            {phase === "loading" && (
-              <div className="mx-auto max-w-xl pt-5">
-                <AnalysisLoadingState steps={steps} />
-              </div>
-            )}
-
-            {phase === "error" && error && (
-              <ErrorState
-                kind={error.kind}
-                message={error.message}
-                detail={error.detail}
-                onRetry={() => analyze()}
-              />
-            )}
-
-            {phase === "ready" && result && (
-              <div className="space-y-5 pt-5">
-                {isGenerative(settings.model) && brief && (
-                  <BriefPanel
-                    state={brief}
-                    model={settings.model}
-                    device={modelHealth?.device}
-                    onRegenerate={() => result && runBrief(result)}
-                  />
-                )}
-                <TodaysFocus items={todaysFocus(result.todos)} onOpen={setExpandedId} />
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <DashboardFilters
-                    filters={filters}
-                    onChange={setFilters}
-                    assignees={uniqueAssignees(result)}
-                    labels={uniqueLabels(result)}
-                  />
-                  <ViewToggle view={view} onChange={setView} />
+            <div className="mx-auto max-w-6xl px-4 pb-10 md:px-6">
+              {phase === "loading" && (
+                <div className="mx-auto max-w-xl pt-5">
+                  <AnalysisLoadingState steps={steps} />
                 </div>
+              )}
 
-                {filtered.length === 0 ? (
-                  <Section icon={ListChecks} title="No matching todos">
-                    <EmptyHint>No todos match the current filters. Try clearing them.</EmptyHint>
-                  </Section>
-                ) : view === "board" ? (
-                  <Section
-                    icon={LayoutGrid}
-                    title="Priority Board"
-                    subtitle="Every extracted todo, bucketed P0 → P3"
-                    count={filtered.length}
-                  >
-                    <PriorityBoard groups={groups} />
-                  </Section>
-                ) : (
-                  <div className="space-y-5">
-                    <BlockedSection items={blockedOrDecisions(filtered)} />
-                    <div className="grid gap-5 lg:grid-cols-2">
-                      <ReviewQueue items={reviewQueue(filtered)} />
-                      <StaleItems items={staleItems(filtered)} />
+              {phase === "error" && error && (
+                <ErrorState
+                  kind={error.kind}
+                  message={error.message}
+                  detail={error.detail}
+                  onRetry={() => analyze()}
+                />
+              )}
+
+              {phase === "ready" && result && (
+                <div className="space-y-5 pt-5">
+                  {result.enrichment?.live && !result.enrichment.tokenPresent && (
+                    <div className="flex items-start gap-2 rounded-xl bg-honey-tint px-3.5 py-2.5 text-[12px] leading-relaxed text-ink-2">
+                      <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-honey" />
+                      <span>
+                        Live mode without a token — <strong>review / CI status</strong> and{" "}
+                        <strong>latest comments</strong> aren't fetched. Add a token via the{" "}
+                        <strong className="text-mint">Token</strong> button (top-right) for full
+                        enrichment.
+                      </span>
                     </div>
-                    <AllTodos items={filtered} expandedId={expandedId} />
+                  )}
+                  {isGenerative(settings.model) && brief && (
+                    <BriefPanel
+                      state={brief}
+                      model={settings.model}
+                      device={modelHealth?.device}
+                      onRegenerate={() => result && runBrief(result)}
+                    />
+                  )}
+                  <TodaysFocus items={todaysFocus(result.todos)} onOpen={setExpandedId} />
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <DashboardFilters
+                      filters={filters}
+                      onChange={setActiveFilters}
+                      assignees={uniqueAssignees(result)}
+                      labels={uniqueLabels(result)}
+                    />
+                    <ViewToggle view={view} onChange={setView} />
                   </div>
-                )}
-              </div>
-            )}
-          </div>
+
+                  {filtered.length === 0 ? (
+                    <Section icon={ListChecks} title="No matching todos">
+                      <EmptyHint>No todos match the current filters. Try clearing them.</EmptyHint>
+                    </Section>
+                  ) : view === "board" ? (
+                    <Section
+                      icon={LayoutGrid}
+                      title="Priority Board"
+                      subtitle="Every extracted todo, bucketed P0 → P3"
+                      count={filtered.length}
+                    >
+                      <PriorityBoard groups={groups} />
+                    </Section>
+                  ) : (
+                    <div className="space-y-5">
+                      <BlockedSection items={blockedOrDecisions(filtered)} />
+                      <div className="grid gap-5 lg:grid-cols-2">
+                        <ReviewQueue items={reviewQueue(filtered)} />
+                        <StaleItems items={staleItems(filtered)} />
+                      </div>
+                      <AllTodos items={filtered} expandedId={expandedId} />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </main>

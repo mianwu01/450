@@ -21,6 +21,15 @@ export type TodoStatus =
 
 export type TodoSourceType = "issue" | "pull_request" | "repo";
 
+/** Where a piece of evidence came from (for the traceability chain). */
+export type EvidenceKind =
+  | "body"
+  | "comment"
+  | "task"
+  | "todo"
+  | "status"
+  | "meta";
+
 export interface Evidence {
   sourceType: TodoSourceType;
   sourceTitle: string;
@@ -28,6 +37,13 @@ export interface Evidence {
   /** Raw excerpt copied verbatim from the GitHub source — the grounding. */
   snippet: string;
   timestamp?: string;
+  // ── traceability (optional, backward-compatible) ──
+  /** Stable, deterministic id for this evidence (keys the evidence store). */
+  traceId?: string;
+  /** What kind of source this excerpt is. */
+  kind?: EvidenceKind;
+  /** 1-based line number within the source body/comment, when applicable. */
+  line?: number;
 }
 
 export interface TodoItem {
@@ -50,6 +66,15 @@ export interface TodoItem {
   /** Issue/PR number for display. */
   reference?: number;
   evidence: Evidence[];
+  // ── traceability + extraction (optional, backward-compatible) ──
+  /** Stable, deterministic id for this todo. */
+  traceId?: string;
+  /** "source" = the whole issue/PR; "action" = an item extracted from it. */
+  kind?: "source" | "action";
+  /** For extracted actions: the trace id of the parent issue/PR card. */
+  parentTraceId?: string;
+  /** For source cards: how many child actions were extracted from it. */
+  childCount?: number;
 }
 
 export type HealthStatus =
@@ -76,6 +101,20 @@ export interface RepoAnalysisResult {
   brief?: string;
   /** Which engine produced the brief (model id). */
   engine?: string;
+  /** What the intake managed to enrich — drives "needs a token" UI hints. */
+  enrichment?: EnrichmentInfo;
+}
+
+/** Flags describing how complete the intake was (token-gated enrichment). */
+export interface EnrichmentInfo {
+  /** True for the live GitHub adapter; false for offline sample data. */
+  live: boolean;
+  /** Whether a GitHub token was present during intake. */
+  tokenPresent: boolean;
+  /** Whether per-PR review + CI status was fetched. */
+  reviewCi: boolean;
+  /** Whether latest comments were fetched. */
+  comments: boolean;
 }
 
 // ── Raw intake shapes (what an adapter returns before extraction) ───────────────
@@ -138,4 +177,6 @@ export interface IntakeBundle {
   pullRequests: RawPullRequest[];
   /** The viewer's GitHub login, used for "assigned to me" boosts. */
   viewerLogin?: string;
+  /** How complete this intake was (adapter-reported). */
+  meta?: EnrichmentInfo;
 }

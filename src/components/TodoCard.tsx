@@ -58,6 +58,16 @@ export function TodoCard({
                   #{todo.reference}
                 </span>
                 <StatusBadge status={todo.status} />
+                {todo.kind === "action" && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-accent/25 px-2 py-0.5 text-[10px] font-medium text-ink">
+                    <CornerDownRight className="h-2.5 w-2.5" /> action
+                  </span>
+                )}
+                {todo.kind === "source" && !!todo.childCount && (
+                  <span className="rounded-full bg-surface-3 px-2 py-0.5 text-[10px] font-medium text-ink-3">
+                    {todo.childCount} action{todo.childCount > 1 ? "s" : ""}
+                  </span>
+                )}
               </div>
               <h3 className="truncate text-[15px] font-semibold tracking-tight text-ink">
                 {todo.title}

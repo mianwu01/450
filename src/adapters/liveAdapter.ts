@@ -1,5 +1,6 @@
 import type {
   CheckState,
+  EnrichmentInfo,
   IntakeBundle,
   RawIssue,
   RawPullRequest,
@@ -12,11 +13,15 @@ import type { GitHubAdapter, RepoTarget } from "./types";
 
 const API = "https://api.github.com";
 
-// Cap how many PRs we enrich with extra per-PR calls, so even a busy repo with a
-// token stays well within budget.
+// Cap how many items we enrich with extra per-item calls, so even a busy repo
+// stays well within budget.
 const MAX_PR_ENRICH = 20;
+const MAX_COMMENT_ENRICH = 24;
 // Concurrency for enrichment fan-out.
 const ENRICH_POOL = 5;
+// Per-request timeout. Nothing aborts the fetch otherwise, so the "timeout"
+// error state could never fire.
+const REQUEST_TIMEOUT_MS = 15000;
 
 function authHeaders(): Record<string, string> {
   const token = getToken();
@@ -29,12 +34,35 @@ function authHeaders(): Record<string, string> {
 }
 
 async function gh<T>(path: string, signal?: AbortSignal): Promise<T> {
+  // Combine the run-level abort signal with a real per-request timeout.
+  const ctrl = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    ctrl.abort();
+  }, REQUEST_TIMEOUT_MS);
+  const onOuter = () => ctrl.abort();
+  if (signal) {
+    if (signal.aborted) ctrl.abort();
+    else signal.addEventListener("abort", onOuter);
+  }
+
   let res: Response;
   try {
-    res = await fetch(`${API}${path}`, { headers: authHeaders(), signal });
+    res = await fetch(`${API}${path}`, { headers: authHeaders(), signal: ctrl.signal });
   } catch (e) {
-    if ((e as Error).name === "AbortError") throw e;
+    if (timedOut) {
+      throw new AnalysisError(
+        "timeout",
+        "GitHub took too long to respond.",
+        `No response within ${REQUEST_TIMEOUT_MS / 1000}s — check your connection and try again.`,
+      );
+    }
+    if ((e as Error).name === "AbortError") throw e; // run-level cancellation
     throw new AnalysisError("network", "Could not reach GitHub.", String(e));
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", onOuter);
   }
 
   if (res.status === 404) {
@@ -57,9 +85,7 @@ async function gh<T>(path: string, signal?: AbortSignal): Promise<T> {
     const remaining = res.headers.get("x-ratelimit-remaining");
     if (remaining === "0") {
       const reset = res.headers.get("x-ratelimit-reset");
-      const when = reset
-        ? new Date(Number(reset) * 1000).toLocaleTimeString()
-        : "soon";
+      const when = reset ? new Date(Number(reset) * 1000).toLocaleTimeString() : "soon";
       throw new AnalysisError(
         "rate_limit",
         "GitHub API rate limit reached.",
@@ -84,7 +110,9 @@ async function gh<T>(path: string, signal?: AbortSignal): Promise<T> {
 async function ghSoft<T>(path: string, signal?: AbortSignal): Promise<T | null> {
   try {
     return await gh<T>(path, signal);
-  } catch {
+  } catch (e) {
+    // A run-level cancel should still propagate; soft-swallow everything else.
+    if ((e as Error).name === "AbortError") throw e;
     return null;
   }
 }
@@ -128,15 +156,14 @@ function mapPull(raw: any): RawPullRequest & { _headSha?: string } {
   };
 }
 
-// Aggregate the latest review per reviewer into a single state.
 function reviewStateFrom(reviews: any[], fallback: ReviewState): ReviewState {
   if (!reviews?.length) return fallback;
   const latestByUser = new Map<string, string>();
   for (const r of reviews) {
     const login = r.user?.login;
     if (!login) continue;
-    if (r.state === "COMMENTED") continue; // comments don't change the gate
-    latestByUser.set(login, r.state); // reviews are chronological → last wins
+    if (r.state === "COMMENTED") continue;
+    latestByUser.set(login, r.state);
   }
   const states = [...latestByUser.values()];
   if (states.includes("CHANGES_REQUESTED")) return "changes_requested";
@@ -146,55 +173,63 @@ function reviewStateFrom(reviews: any[], fallback: ReviewState): ReviewState {
 
 function checkStateFrom(checkRuns: any[], statuses: any): CheckState {
   const runs = checkRuns ?? [];
-  const combined = statuses?.state as string | undefined; // success|failure|pending
+  const combined = statuses?.state as string | undefined;
   if (!runs.length && !combined) return "none";
   const concl = runs.map((r) => r.conclusion);
   const anyFail =
     concl.some((c) => ["failure", "timed_out", "cancelled", "action_required"].includes(c)) ||
     combined === "failure";
   if (anyFail) return "failing";
-  const anyPending =
-    runs.some((r) => r.status !== "completed") || combined === "pending";
+  const anyPending = runs.some((r) => r.status !== "completed") || combined === "pending";
   if (anyPending) return "pending";
   return "passing";
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
+/** Run a worker pool over items with bounded concurrency. */
+async function pool<T>(items: T[], worker: (item: T) => Promise<void>): Promise<void> {
+  let cursor = 0;
+  async function run() {
+    while (cursor < items.length) await worker(items[cursor++]);
+  }
+  await Promise.all(Array.from({ length: Math.min(ENRICH_POOL, items.length) }, run));
+}
+
+// Per-PR review + CI status (token-gated, best-effort).
 async function enrichPulls(
   base: string,
   pulls: Array<RawPullRequest & { _headSha?: string }>,
   signal?: AbortSignal,
 ): Promise<void> {
-  const targets = pulls.slice(0, MAX_PR_ENRICH);
-  let cursor = 0;
-  async function worker() {
-    while (cursor < targets.length) {
-      const pr = targets[cursor++];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const reviews = await ghSoft<any[]>(
-        `${base}/pulls/${pr.number}/reviews?per_page=100`,
-        signal,
-      );
-      if (reviews) pr.reviewState = reviewStateFrom(reviews, pr.reviewState);
-      if (pr._headSha) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const checks = await ghSoft<any>(
-          `${base}/commits/${pr._headSha}/check-runs`,
-          signal,
-        );
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const status = await ghSoft<any>(
-          `${base}/commits/${pr._headSha}/status`,
-          signal,
-        );
-        pr.checkState = checkStateFrom(checks?.check_runs ?? [], status);
-      }
+  await pool(pulls.slice(0, MAX_PR_ENRICH), async (pr) => {
+    const reviews = await ghSoft<any[]>(`${base}/pulls/${pr.number}/reviews?per_page=100`, signal);
+    if (reviews) pr.reviewState = reviewStateFrom(reviews, pr.reviewState);
+    if (pr._headSha) {
+      const checks = await ghSoft<any>(`${base}/commits/${pr._headSha}/check-runs`, signal);
+      const status = await ghSoft<any>(`${base}/commits/${pr._headSha}/status`, signal);
+      pr.checkState = checkStateFrom(checks?.check_runs ?? [], status);
     }
-  }
-  await Promise.all(
-    Array.from({ length: Math.min(ENRICH_POOL, targets.length) }, worker),
-  );
+  });
 }
+
+// Latest comment per issue/PR (token-gated, best-effort). The per-issue comments
+// endpoint only paginates ascending, so the last comment is the last page.
+async function enrichComments(
+  base: string,
+  items: RawIssue[],
+  signal?: AbortSignal,
+): Promise<void> {
+  const targets = items.filter((i) => i.comments > 0).slice(0, MAX_COMMENT_ENRICH);
+  await pool(targets, async (it) => {
+    const page = Math.max(1, it.comments);
+    const arr = await ghSoft<any[]>(
+      `${base}/issues/${it.number}/comments?per_page=1&page=${page}`,
+      signal,
+    );
+    const body = arr?.[0]?.body;
+    if (body) it.lastComment = String(body);
+  });
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 export const liveAdapter: GitHubAdapter = {
   id: "live",
@@ -204,19 +239,14 @@ export const liveAdapter: GitHubAdapter = {
   async fetchIntake(target: RepoTarget, signal?: AbortSignal): Promise<IntakeBundle> {
     const { owner, repo } = target;
     const base = `/repos/${owner}/${repo}`;
+    const tokenPresent = !!getToken();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const repoRaw = await gh<any>(base, signal);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const issuesRaw = await gh<any[]>(
-      `${base}/issues?state=open&per_page=50&sort=updated`,
-      signal,
-    );
+    const issuesRaw = await gh<any[]>(`${base}/issues?state=open&per_page=50&sort=updated`, signal);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pullsRaw = await gh<any[]>(
-      `${base}/pulls?state=open&per_page=30&sort=updated`,
-      signal,
-    );
+    const pullsRaw = await gh<any[]>(`${base}/pulls?state=open&per_page=30&sort=updated`, signal);
 
     const repoMeta: RawRepo = {
       fullName: repoRaw.full_name,
@@ -232,20 +262,25 @@ export const liveAdapter: GitHubAdapter = {
     const issues = issuesRaw.filter((i) => !i.pull_request).map(mapIssue);
     const pullRequests = pullsRaw.map(mapPull);
 
-    // When we have a token (and therefore budget), fill in real review + CI
-    // status per PR. Best-effort: any failure leaves the light-path defaults.
-    if (getToken() && pullRequests.length) {
-      await enrichPulls(base, pullRequests, signal);
+    // Token-gated enrichment (review/CI + latest comments). Best-effort: a
+    // failure leaves the light-path defaults and the UI flags it as needing a token.
+    if (tokenPresent) {
+      if (pullRequests.length) await enrichPulls(base, pullRequests, signal);
+      await enrichComments(base, [...issues, ...pullRequests], signal);
     }
 
-    // Strip the internal _headSha before handing off.
-    const cleanedPulls: RawPullRequest[] = pullRequests.map(
-      ({ _headSha, ...pr }) => {
-        void _headSha;
-        return pr;
-      },
-    );
+    const cleanedPulls: RawPullRequest[] = pullRequests.map(({ _headSha, ...pr }) => {
+      void _headSha;
+      return pr;
+    });
 
-    return { repo: repoMeta, issues, pullRequests: cleanedPulls };
+    const meta: EnrichmentInfo = {
+      live: true,
+      tokenPresent,
+      reviewCi: tokenPresent,
+      comments: tokenPresent,
+    };
+
+    return { repo: repoMeta, issues, pullRequests: cleanedPulls, meta };
   },
 };

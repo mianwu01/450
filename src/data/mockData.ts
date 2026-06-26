@@ -29,7 +29,7 @@ const issues: RawIssue[] = [
   {
     number: 412,
     title: "main branch CI is red — `pytest` import error after dep bump",
-    body: "Since #408 merged, every run on `main` fails at collection:\n\n```\nImportError: cannot import name 'TraceSpan' from 'nanobot.trace'\n```\n\nThis blocks all downstream PRs from getting a green check. We should revert or hotfix before tagging v0.3.",
+    body: "Since #408 merged, every run on `main` fails at collection:\n\n```\nImportError: cannot import name 'TraceSpan' from 'nanobot.trace'\n```\n\nThis blocks all downstream PRs from getting a green check.\n\n- [ ] Revert #408 or re-export `TraceSpan` from `nanobot.trace`\n- [ ] Add a regression test so collection can't break silently\n- [x] Confirm the failure reproduces locally\n\nFIXME: pin the dependency that moved `TraceSpan` so this can't recur.",
     htmlUrl: "https://github.com/hkuds/academic-workflow-agent/issues/412",
     state: "open",
     labels: ["bug", "ci", "blocker"],
@@ -45,7 +45,7 @@ const issues: RawIssue[] = [
   {
     number: 401,
     title: "Release blocker: evidence snippets missing source URL in export",
-    body: "The Markdown export drops `sourceUrl` for ~30% of todos, which violates the traceability CTQ. We cannot ship the v0.3 demo with broken provenance links.",
+    body: "The Markdown export drops `sourceUrl` for ~30% of todos, which violates the traceability CTQ. We cannot ship the v0.3 demo with broken provenance links.\n\n- [ ] Add `sourceUrl` + trace ID to every evidence record in the serializer\n- [ ] Backfill trace IDs for repo-activity todos\n\nTODO: add a fixture that fails when an evidence item has no source link.",
     htmlUrl: "https://github.com/hkuds/academic-workflow-agent/issues/401",
     state: "open",
     labels: ["bug", "traceability", "release-blocker"],

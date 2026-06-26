@@ -1,5 +1,6 @@
 import type {
   Evidence,
+  EvidenceKind,
   HealthStatus,
   IntakeBundle,
   RawIssue,
@@ -11,6 +12,7 @@ import type {
 } from "@/types/domain";
 import { daysSince } from "@/lib/format";
 import { clamp } from "@/lib/utils";
+import { todoTraceId, evidenceTraceId } from "@/lib/trace";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Deterministic task-extraction + prioritization pipeline.
@@ -206,10 +208,25 @@ function prAction(pr: RawPullRequest, status: TodoStatus): string {
   return "Move the review forward.";
 }
 
-// ── Extraction ────────────────────────────────────────────────────────────────
-function issueToTodo(issue: RawIssue, viewer?: string): TodoItem {
+const PRIORITY_RANK: Record<TodoPriority, number> = { P0: 0, P1: 1, P2: 2, P3: 3 };
+const PRIORITY_ORDER: TodoPriority[] = ["P0", "P1", "P2", "P3"];
+/** Cap extracted child actions per source so a checklist-heavy issue can't flood. */
+const MAX_ACTIONS = 6;
+
+/** Assign stable trace ids (+ default kinds) to a todo's evidence in place. */
+function withEvidenceIds(todoId: string, evidence: Evidence[]): Evidence[] {
+  return evidence.map((e, i) => ({
+    ...e,
+    kind: e.kind ?? "body",
+    traceId: e.traceId ?? evidenceTraceId(todoId, i, e.kind ?? "ev"),
+  }));
+}
+
+// ── Source cards (the whole issue / PR) ───────────────────────────────────────
+function issueToTodo(repo: string, issue: RawIssue, viewer?: string): TodoItem {
   const { score, reasons } = scoreIssue(issue, viewer);
   const status = issueStatus(issue);
+  const traceId = todoTraceId(repo, "issue", issue.number, 0);
   const evidence: Evidence[] = [
     {
       sourceType: "issue",
@@ -217,6 +234,7 @@ function issueToTodo(issue: RawIssue, viewer?: string): TodoItem {
       sourceUrl: issue.htmlUrl,
       snippet: snippet(issue.body) || "(no description provided)",
       timestamp: issue.updatedAt,
+      kind: "body",
     },
   ];
   if (issue.lastComment) {
@@ -226,11 +244,14 @@ function issueToTodo(issue: RawIssue, viewer?: string): TodoItem {
       sourceUrl: issue.htmlUrl,
       snippet: snippet(issue.lastComment),
       timestamp: issue.updatedAt,
+      kind: "comment",
     });
   }
 
   return {
     id: `issue-${issue.number}`,
+    traceId,
+    kind: "source",
     title: issue.title,
     summary: snippet(issue.body, 140) || "No description provided.",
     priority: bucket(score),
@@ -244,16 +265,24 @@ function issueToTodo(issue: RawIssue, viewer?: string): TodoItem {
     sourceUrl: issue.htmlUrl,
     sourceType: "issue",
     reference: issue.number,
-    evidence,
+    evidence: withEvidenceIds(traceId, evidence),
   };
 }
 
-function prToTodo(pr: RawPullRequest, viewer?: string): TodoItem {
+function prToTodo(
+  repo: string,
+  pr: RawPullRequest,
+  viewer?: string,
+  enriched = true,
+): TodoItem {
   const { score, reasons } = scorePR(pr, viewer);
   const status = prStatus(pr);
-  const meta = `+${pr.additions ?? 0} −${pr.deletions ?? 0} across ${
-    pr.changedFiles ?? 0
-  } files · checks ${pr.checkState} · review ${pr.reviewState.replace("_", " ")}`;
+  const traceId = todoTraceId(repo, "pull_request", pr.number, 0);
+  // When review/CI wasn't fetched (no token), say so instead of "checks none".
+  const statusLine =
+    !enriched && pr.checkState === "none"
+      ? `+${pr.additions ?? 0} −${pr.deletions ?? 0} across ${pr.changedFiles ?? 0} files · review/CI status requires a GitHub token`
+      : `+${pr.additions ?? 0} −${pr.deletions ?? 0} across ${pr.changedFiles ?? 0} files · checks ${pr.checkState} · review ${pr.reviewState.replace("_", " ")}`;
   const evidence: Evidence[] = [
     {
       sourceType: "pull_request",
@@ -261,13 +290,15 @@ function prToTodo(pr: RawPullRequest, viewer?: string): TodoItem {
       sourceUrl: pr.htmlUrl,
       snippet: snippet(pr.body) || "(no description provided)",
       timestamp: pr.updatedAt,
+      kind: "body",
     },
     {
       sourceType: "pull_request",
       sourceTitle: "Review & check status",
       sourceUrl: pr.htmlUrl,
-      snippet: meta,
+      snippet: statusLine,
       timestamp: pr.updatedAt,
+      kind: "status",
     },
   ];
   if (pr.lastComment) {
@@ -277,11 +308,14 @@ function prToTodo(pr: RawPullRequest, viewer?: string): TodoItem {
       sourceUrl: pr.htmlUrl,
       snippet: snippet(pr.lastComment),
       timestamp: pr.updatedAt,
+      kind: "comment",
     });
   }
 
   return {
     id: `pr-${pr.number}`,
+    traceId,
+    kind: "source",
     title: pr.title,
     summary: snippet(pr.body, 140) || "No description provided.",
     priority: bucket(score),
@@ -295,16 +329,165 @@ function prToTodo(pr: RawPullRequest, viewer?: string): TodoItem {
     sourceUrl: pr.htmlUrl,
     sourceType: "pull_request",
     reference: pr.number,
+    evidence: withEvidenceIds(traceId, evidence),
+  };
+}
+
+// ── Action extraction (multiple todos per source) ─────────────────────────────
+type ActionTag = "task" | "todo" | "fixme" | "action" | "note";
+interface Action {
+  text: string;
+  line: number;
+  tag: ActionTag;
+  origin: "body" | "comment";
+}
+
+/** Parse markdown task-lists and TODO/FIXME/Action/Note lines into actions. */
+function parseActions(src: RawIssue): Action[] {
+  const found: Action[] = [];
+  const scan = (text: string | undefined, origin: "body" | "comment") => {
+    if (!text) return;
+    text.split(/\r?\n/).forEach((raw, idx) => {
+      const line = idx + 1;
+      // unchecked markdown task: "- [ ] foo", "* [ ] foo", "1. [ ] foo"
+      const task = raw.match(/^\s*(?:[-*+]|\d+\.)\s+\[\s\]\s+(.+\S)\s*$/);
+      if (task) {
+        found.push({ text: task[1], line, tag: "task", origin });
+        return;
+      }
+      // checked tasks ("[x]") are done — skip them deliberately.
+      if (/^\s*(?:[-*+]|\d+\.)\s+\[[xX]\]/.test(raw)) return;
+      // tagged action lines, optionally bulleted: "TODO: foo", "- FIXME foo"
+      const tag = raw.match(
+        /^\s*(?:[-*+]\s+)?(TODO|FIXME|ACTION|NOTE)\b\s*[:\-–)]*\s*(.+\S)\s*$/i,
+      );
+      if (tag) {
+        found.push({
+          text: tag[2],
+          line,
+          tag: tag[1].toLowerCase() as ActionTag,
+          origin,
+        });
+      }
+    });
+  };
+  scan(src.body, "body");
+  scan(src.lastComment, "comment");
+
+  // dedupe by normalized text, cap.
+  const seen = new Set<string>();
+  const unique = found.filter((a) => {
+    const k = a.text.toLowerCase().replace(/\s+/g, " ").slice(0, 80);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+  return unique.slice(0, MAX_ACTIONS);
+}
+
+const URGENT_RE = /\b(urgent|asap|critical|blocker|block(s|ing)?|security|crash|broken|regression|p0)\b/i;
+const MINOR_RE = /\b(docs?|typo|nit|cleanup|rename|comment|polish|later|someday)\b/i;
+const DECISION_RE = /\b(decide|decision|discuss|agree|choose|figure out|spec out)\b/i;
+
+function cap(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
+function actionPriority(parent: TodoPriority, a: Action): TodoPriority {
+  let idx = PRIORITY_RANK[parent];
+  if (URGENT_RE.test(a.text)) idx -= a.text.match(/blocker|security|p0/i) ? 2 : 1;
+  if (a.tag === "fixme") idx -= 1; // a FIXME is more pressing than a plain TODO
+  if (MINOR_RE.test(a.text)) idx += 1;
+  return PRIORITY_ORDER[clamp(idx, 0, 3)];
+}
+
+function actionStatus(parent: TodoItem, a: Action): TodoStatus {
+  if (DECISION_RE.test(a.text)) return "needs_decision";
+  if (parent.sourceType === "pull_request" && /\breview\b/i.test(a.text))
+    return "needs_review";
+  return "needs_implementation";
+}
+
+function actionConfidence(a: Action): number {
+  const base =
+    a.tag === "task" || a.tag === "fixme"
+      ? 0.82
+      : a.tag === "action"
+        ? 0.78
+        : a.tag === "todo"
+          ? 0.74
+          : 0.6;
+  return clamp(Number((base - (a.origin === "comment" ? 0.05 : 0)).toFixed(2)), 0.4, 0.95);
+}
+
+function buildAction(
+  repo: string,
+  parent: TodoItem,
+  src: RawIssue,
+  a: Action,
+  position: number,
+): TodoItem {
+  const traceId = todoTraceId(repo, parent.sourceType ?? "issue", src.number, position);
+  const priority = actionPriority(parent.priority, a);
+  const status = actionStatus(parent, a);
+  const evidenceKind: EvidenceKind = a.origin === "comment" ? "comment" : a.tag === "task" ? "task" : "todo";
+  const evidence: Evidence[] = withEvidenceIds(traceId, [
+    {
+      sourceType: parent.sourceType ?? "issue",
+      sourceTitle: `#${src.number} — ${a.tag.toUpperCase()} (${a.origin}, line ${a.line})`,
+      sourceUrl: src.htmlUrl,
+      snippet: a.text,
+      timestamp: src.updatedAt,
+      kind: evidenceKind,
+      line: a.line,
+    },
+  ]);
+  return {
+    id: `${parent.id}-a${position}`,
+    traceId,
+    kind: "action",
+    parentTraceId: parent.traceId,
+    title: cap(snippet(a.text, 96)),
+    summary: `Actionable item ${a.origin === "comment" ? "from a comment on" : "in"} #${src.number}.`,
+    priority,
+    status,
+    suggestedAction: cap(a.text),
+    rationale: `Extracted from ${a.origin === "comment" ? "a comment" : "the description"} of #${src.number} (${a.tag} item, line ${a.line}). Inherits context: “${snippet(parent.title, 60)}”.`,
+    confidence: actionConfidence(a),
+    labels: parent.labels,
+    assignees: parent.assignees,
+    updatedAt: parent.updatedAt,
+    sourceUrl: parent.sourceUrl,
+    sourceType: parent.sourceType,
+    reference: parent.reference,
     evidence,
   };
 }
 
-const PRIORITY_RANK: Record<TodoPriority, number> = { P0: 0, P1: 1, P2: 2, P3: 3 };
+/** A source card plus any actions extracted from it (parent fallback if none). */
+function extractFromSource(
+  repo: string,
+  src: RawIssue | RawPullRequest,
+  isPR: boolean,
+  viewer: string | undefined,
+  enriched: boolean,
+): TodoItem[] {
+  const parent = isPR
+    ? prToTodo(repo, src as RawPullRequest, viewer, enriched)
+    : issueToTodo(repo, src, viewer);
+  const actions = parseActions(src);
+  parent.childCount = actions.length;
+  if (!actions.length) return [parent];
+  const children = actions.map((a, i) => buildAction(repo, parent, src, a, i + 1));
+  return [parent, ...children];
+}
 
 export function extractTodos(bundle: IntakeBundle): TodoItem[] {
+  const repo = bundle.repo.fullName;
+  const enriched = bundle.meta ? bundle.meta.reviewCi : true;
   const todos = [
-    ...bundle.issues.map((i) => issueToTodo(i, bundle.viewerLogin)),
-    ...bundle.pullRequests.map((p) => prToTodo(p, bundle.viewerLogin)),
+    ...bundle.issues.flatMap((i) => extractFromSource(repo, i, false, bundle.viewerLogin, enriched)),
+    ...bundle.pullRequests.flatMap((p) => extractFromSource(repo, p, true, bundle.viewerLogin, enriched)),
   ];
   return todos.sort((a, b) => {
     const byPriority = PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
@@ -356,5 +539,6 @@ export function analyze(
     healthStatus: deriveHealth(bundle, todos),
     generatedAt,
     todos,
+    enrichment: bundle.meta,
   };
 }

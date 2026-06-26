@@ -20,6 +20,10 @@ export function toMarkdown(result: RepoAnalysisResult): string {
   );
   lines.push("");
   lines.push(`Source: ${result.repoUrl}`);
+  if (result.brief) {
+    lines.push("");
+    lines.push(`**Brief${result.engine ? ` (${result.engine})` : ""}:** ${result.brief}`);
+  }
   lines.push("");
 
   for (const p of PRIORITY_ORDER) {
@@ -36,19 +40,31 @@ export function toMarkdown(result: RepoAnalysisResult): string {
 function todoBlock(t: TodoItem): string[] {
   const out: string[] = [];
   const ref = t.reference ? `#${t.reference} ` : "";
-  out.push(`### ${ref}${t.title}`);
+  const tag = t.kind === "action" ? " ↳" : "";
+  out.push(`###${tag} ${ref}${t.title}`);
   out.push(
     `- **Priority:** ${t.priority}  ·  **Status:** ${
       STATUS_META[t.status].label
     }  ·  **Confidence:** ${t.confidence != null ? Math.round(t.confidence * 100) + "%" : "—"}`,
   );
+  if (t.traceId) {
+    out.push(
+      `- **Trace ID:** \`${t.traceId}\`${
+        t.parentTraceId ? `  ·  **Parent:** \`${t.parentTraceId}\`` : ""
+      }`,
+    );
+  }
   out.push(`- **Source:** ${t.sourceType ?? "issue"} — ${t.sourceUrl ?? ""}`);
   out.push(`- **Summary:** ${t.summary}`);
   out.push(`- **Why it matters:** ${t.rationale}`);
   out.push(`- **Suggested action:** ${t.suggestedAction}`);
   if (t.evidence.length) {
     out.push(`- **Evidence:**`);
-    for (const e of t.evidence) out.push(`  - _${e.sourceTitle}_: "${e.snippet}"`);
+    for (const e of t.evidence) {
+      const id = e.traceId ? ` \`[${e.traceId}]\`` : "";
+      const where = e.line ? ` (line ${e.line})` : "";
+      out.push(`  - _${e.sourceTitle}_${where}: "${e.snippet}"${id}`);
+    }
   }
   out.push("");
   return out;

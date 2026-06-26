@@ -22,6 +22,12 @@ export const mockAdapter: GitHubAdapter = {
   offline: true,
   async fetchIntake(target: RepoTarget, signal?: AbortSignal): Promise<IntakeBundle> {
     await sleep(650, signal);
-    return mockBundleFor(target.owner, target.repo);
+    const bundle = mockBundleFor(target.owner, target.repo);
+    // Curated data is fully populated (comments, review/CI), so report it as
+    // enriched — no "needs a token" hints in Sample mode.
+    return {
+      ...bundle,
+      meta: { live: false, tokenPresent: true, reviewCi: true, comments: true },
+    };
   },
 };

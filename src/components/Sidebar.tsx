@@ -1,4 +1,4 @@
-import { LayoutDashboard, GitBranch, Plus, Radio, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, GitBranch, Plus, Radio, ShieldCheck, X } from "lucide-react";
 import type { TodoPriority, HealthStatus } from "@/types/domain";
 import { PRIORITY_META, PRIORITY_ORDER, HEALTH_META } from "@/lib/presentation";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ export function Sidebar({
   repos,
   activeRepo,
   onSelectRepo,
+  onRemoveRepo,
   onNewRepo,
   onHome,
   counts,
@@ -23,6 +24,7 @@ export function Sidebar({
   repos: RepoTab[];
   activeRepo: string | null;
   onSelectRepo: (name: string) => void;
+  onRemoveRepo: (name: string) => void;
   onNewRepo: () => void;
   onHome: () => void;
   counts: Record<TodoPriority, number>;
@@ -54,7 +56,7 @@ export function Sidebar({
 
       <div className="mt-6 px-3">
         <div className="mb-2 flex items-center justify-between px-2">
-          <span className="label">Repositories</span>
+          <span className="label">Repositories{repos.length ? ` · ${repos.length}` : ""}</span>
           <button
             onClick={onNewRepo}
             className="grid h-5 w-5 place-items-center rounded-md text-ink-3 hover:bg-surface-3 hover:text-ink"
@@ -71,29 +73,41 @@ export function Sidebar({
             const h = HEALTH_META[r.health];
             const on = r.name === activeRepo;
             return (
-              <button
+              <div
                 key={r.name}
-                onClick={() => onSelectRepo(r.name)}
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left transition-colors",
+                  "group flex items-center gap-1 rounded-xl pr-1 transition-colors",
                   on ? "bg-surface shadow-hair" : "hover:bg-surface-3",
                 )}
               >
-                <GitBranch className="h-3.5 w-3.5 shrink-0 text-ink-3" />
-                <span
-                  className={cn(
-                    "min-w-0 flex-1 truncate font-mono text-[12px]",
-                    on ? "font-medium text-ink" : "text-ink-2",
-                  )}
+                <button
+                  onClick={() => onSelectRepo(r.name)}
+                  className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 text-left"
+                  title={r.name}
                 >
-                  {r.name.split("/").pop()}
-                </span>
-                <span
-                  className="h-1.5 w-1.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: h.hex }}
-                  title={h.label}
-                />
-              </button>
+                  <GitBranch className="h-3.5 w-3.5 shrink-0 text-ink-3" />
+                  <span
+                    className={cn(
+                      "min-w-0 flex-1 truncate font-mono text-[12px]",
+                      on ? "font-medium text-ink" : "text-ink-2",
+                    )}
+                  >
+                    {r.name.split("/").pop()}
+                  </span>
+                  <span
+                    className="h-1.5 w-1.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: h.hex }}
+                    title={h.label}
+                  />
+                </button>
+                <button
+                  onClick={() => onRemoveRepo(r.name)}
+                  className="grid h-5 w-5 shrink-0 place-items-center rounded-md text-ink-4 opacity-0 transition hover:bg-surface-3 hover:text-p0 focus:opacity-100 group-hover:opacity-100"
+                  title={`Remove ${r.name}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
             );
           })}
         </div>
